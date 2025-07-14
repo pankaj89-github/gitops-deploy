@@ -1,0 +1,88 @@
+@startuml
+' Skin parameters for styling
+skinparam monochrome false
+skinparam defaultFontSize 12
+skinparam componentStyle rectangle
+skinparam component {
+  BackgroundColor<<aks>> #0078D4
+  BorderColor<<aks>> #005BA1
+  FontColor<<aks>> #FFFFFF
+  BackgroundColor<<karpenter>> #00A170
+  BorderColor<<karpenter>> #006D4E
+  FontColor<<karpenter>> #FFFFFF
+  BackgroundColor<<azure>> #32C8CD
+  BorderColor<<azure>> #1A8A8F
+  FontColor<<azure>> #FFFFFF
+  BackgroundColor<<pod>> #FFD700
+  BorderColor<<pod>> #DAA520
+  BackgroundColor<<node>> #98FB98
+  BorderColor<<node>> #228B22
+  BackgroundColor<<kyverno>> #FF6347
+  BorderColor<<kyverno>> #CC4C33
+  FontColor<<kyverno>> #FFFFFF
+}
+
+' Components
+[Azure Voting App] as workload
+[Kyverno Policy Engine] as kyverno <<kyverno>>
+package "AKS Cluster" <<aks>> {
+  [Pod: 2 CPU, 4GB, Azure CNI] as pod <<pod>>
+  [Kube-Scheduler] as scheduler <<aks>>
+  [System Node Pool] as system_node <<node>>
+  [Spot Node: Standard_D4ls_v5] as spot_node <<node>>
+  [High-Perf Node: Standard_E2s_v5] as hp_node <<node>>
+  [Logging Node: Standard_D4s_v3] as log_node <<node>>
+  [Infra Node] as infra_node <<node>>
+}
+
+package "Karpenter NAP" <<karpenter>> {
+  [Karpenter Controller] as controller <<karpenter>>
+  [NodePool: Spot] as np_spot <<karpenter>>
+  [NodePool: High-Perf] as np_hp <<karpenter>>
+  [NodePool: Logging] as np_log <<karpenter>>
+  [NodePool: Infra] as np_infra <<karpenter>>
+}
+
+package "Azure Cloud" <<azure>> {
+  [Azure API: Virtual Machines] as azure_api <<azure>>
+}
+
+' Workflow
+workload --> kyverno : 1. Deploy Pod (Namespace: workload=spot)
+kyverno --> pod : 2. Mutate: Add Toleration/Affinity
+pod --> scheduler : 3. Resource Request
+scheduler --> pod : 4. Unschedulable
+scheduler --> controller : 5. Detect Unschedulable
+controller --> np_spot : 6. Evaluate Spot NodePool
+controller --> azure_api : 7. Provision Spot VM
+azure_api --> spot_node : 8. Add Spot Node
+scheduler --> spot_node : 9. Schedule Pod
+controller --> system_node : 10. Consolidate (WhenEmpty, 30s)
+
+' Annotations
+note right of kyverno
+  Kyverno Mutate Policies:
+  - Spot: Adds toleration karpenter.sh/disruption:NoSchedule
+  - High-Perf: Adds affinity for Standard_E2s_v5
+  - Logging: Adds toleration/affinity for logging nodes
+  - Infra: Adds nodeSelector for infra nodes
+end note
+
+note right of controller
+  Managed NAP (Preview)
+  Azure CNI Cilium (Overlay)
+  Spot VMs Supported
+  No Windows Node Pools
+  Requires aks-preview CLI
+end note
+
+note right of np_spot
+  NodePool: Spot
+  limits: {cpu: 1000, memory: 1000Gi}
+  consolidationPolicy: WhenEmpty
+  consolidateAfter: 30s
+  instanceTypes: [D4ls_v5]
+  tolerations: karpenter.sh/disruption:NoSchedule
+end note
+
+@enduml
