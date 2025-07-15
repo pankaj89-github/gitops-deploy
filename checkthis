@@ -48,18 +48,23 @@ spec:
         - name: existingHosts
           apiCall:
             urlPath: "/apis/networking.istio.io/v1alpha3/virtualservices"
-            jmesPath: "items[?metadata.namespace != '{{ request.namespace }}' && metadata.namespace != 'aks-istio-system' && metadata.namespace != 'aks-istio-ingress' && metadata.namespace != 'aks-istio-egress'].spec.hosts[]"
+            jmesPath: "items[?metadata.namespace != '{{ request.namespace }}' && metadata.namespace != 'aks-istio-system' && metadata.namespace != 'aks-istio-ingress' && metadata.namespace != 'aks-istio-egress'].spec.
+hosts[]"
       validate:
-        message: "The host '{{ element }}' is already used by a VirtualService in another namespace."
         foreach:
           - list: "request.object.spec.hosts[]"
-            deny:
-              conditions:
-                any:
-                  - key: "{{ existingHosts[?(
+            context:
+              - name: conflictingHost
+                variable:
+                  value: "{{ existingHosts[?(
                       (@ == '{{ element }}') ||
                       (contains(@, '*') && regex_match(replace(@, '*', '.*'), '{{ element }}') && '{{ element }}' != '') ||
                       (contains('{{ element }}', '*') && regex_match(replace('{{ element }}', '*', '.*'), @) && @ != '')
                     )] | [0] }}"
+            deny:
+              conditions:
+                any:
+                  - key: "{{ conflictingHost }}"
                     operator: NotEquals
                     value: ""
+            message: "The host '{{ element }}' conflicts with an existing host '{{ conflictingHost }}' in another namespace."
