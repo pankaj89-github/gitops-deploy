@@ -1,0 +1,26 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: prevent-virtualservice-host-overlap
+spec:
+  validationFailureAction: Enforce
+  rules:
+  - name: check-host-overlap
+    match:
+      any:
+      - resources:
+          kinds:
+          - networking.istio.io/v1alpha3/VirtualService
+    context:
+    - name: existinghosts
+      apiCall:
+        urlPath: "/apis/networking.istio.io/v1alpha3/virtualservices"
+        jmesPath: "items[?metadata.namespace != '{{request.namespace}}'].spec.hosts[]"
+    validate:
+      message: "Host {{request.object.spec.hosts[0]}} is already used in another namespace."
+      deny:
+        conditions:
+          any:
+          - key: "{{ existinghosts }}"
+            operator: Contains
+            value: "{{ request.object.spec.hosts[0] }}"
