@@ -1,0 +1,34 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: prevent-cross-namespace-virtualservice-hosts
+  annotations:
+    policies.kyverno.io/title: Prevent Cross-Namespace VirtualService Host Overlap
+    policies.kyverno.io/category: Istio
+    policies.kyverno.io/severity: high
+    policies.kyverno.io/subject: VirtualService
+    policies.kyverno.io/description: >-
+      Ensures that VirtualService hosts in one namespace do not overlap with hosts
+      defined in VirtualServices in other namespaces to prevent traffic routing conflicts
+      in multi-tenant Istio deployments.
+spec:
+  validationFailureAction: Enforce
+  background: false
+  rules:
+  - name: prevent-cross-namespace-host-overlap
+    match:
+      any:
+      - resources:
+          kinds:
+          - VirtualService
+    validate:
+      foreach:
+      - list: "request.object.spec.hosts"
+        deny:
+          conditions:
+            any:
+            - key: "{{ request.object.spec.hosts[element.index] }}"
+              operator: In
+              value: "{{ range $.items[*].spec.hosts }}{{ . }}{{ end }}"
+              list: "kubernetes.networking.istio.io/v1alpha3/VirtualService[?metadata.namespace!=`{{request.object.metadata.namespace}}`]"
+      message: "The host '{{ request.object.spec.hosts[element.index] }}' is already used by a VirtualService in another namespace."
