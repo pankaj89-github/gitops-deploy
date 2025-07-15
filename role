@@ -22,3 +22,6 @@ roleRef:
   kind: ClusterRole
   name: kyverno-virtualservice-access
   apiGroup: rbac.authorization.k8s.io
+
+kubectl auth can-i get virtualservices.networking.istio.io --as=system:serviceaccount:kyverno:kyverno
+kubectl auth can-i list virtualservices.networking.istio.io --as=system:serviceaccount:kyverno:kyverno
