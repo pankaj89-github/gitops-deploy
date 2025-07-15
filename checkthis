@@ -20,7 +20,7 @@ spec:
         any:
           - resources:
               kinds:
-                - VirtualService
+                - networking.istio.io/v1alpha3/VirtualService
               namespaceSelector:
                 matchExpressions:
                   - key: kubernetes.io/metadata.name
@@ -47,9 +47,8 @@ spec:
       context:
         - name: existingHosts
           apiCall:
-            urlPath: "/apis/networking.istio.io/v1alpha3/virtualservices"
-            jmesPath: "items[?metadata.namespace != '{{ request.namespace }}' && metadata.namespace != 'aks-istio-system' && metadata.namespace != 'aks-istio-ingress' && metadata.namespace != 'aks-istio-egress'].spec.
-hosts[]"
+            urlPath: "/apis/networking.istio.io/v1/virtualservices"
+            jmesPath: "items[?metadata.namespace != '{{ request.namespace }}' && metadata.namespace != 'aks-istio-system' && metadata.namespace != 'aks-istio-ingress' && metadata.namespace != 'aks-istio-egress'].{host: spec.hosts[], namespace: metadata.namespace, name: metadata.name}"
       validate:
         foreach:
           - list: "request.object.spec.hosts[]"
@@ -57,9 +56,9 @@ hosts[]"
               - name: conflictingHost
                 variable:
                   value: "{{ existingHosts[?(
-                      (@ == '{{ element }}') ||
-                      (contains(@, '*') && regex_match(replace(@, '*', '.*'), '{{ element }}') && '{{ element }}' != '') ||
-                      (contains('{{ element }}', '*') && regex_match(replace('{{ element }}', '*', '.*'), @) && @ != '')
+                      (@.host == '{{ element }}') ||
+                      (contains(@.host, '*') && regex_match(replace(@.host, '*', '.*'), '{{ element }}') && '{{ element }}' != '') ||
+                      (contains('{{ element }}', '*') && regex_match(replace('{{ element }}', '*', '.*'), @.host) && @.host != '')
                     )] | [0] }}"
             deny:
               conditions:
@@ -67,4 +66,4 @@ hosts[]"
                   - key: "{{ conflictingHost }}"
                     operator: NotEquals
                     value: ""
-            message: "The host '{{ element }}' conflicts with an existing host '{{ conflictingHost }}' in another namespace."
+              message: "Host '{{ element }}' conflicts with host '{{ conflictingHost.host }}' in VirtualService '{{ conflictingHost.name }}' in namespace '{{ conflictingHost.namespace }}'"
