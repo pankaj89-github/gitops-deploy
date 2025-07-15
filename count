@@ -1,0 +1,25 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: check-virtualservices
+spec:
+  rules:
+  - name: count-virtualservices
+    match:
+      any:
+      - resources:
+          kinds:
+          - Pod
+    context:
+    - name: vscount
+      apiCall:
+        urlPath: "/apis/networking.istio.io/v1/virtualservices"
+        jmesPath: "items | length(@)"
+    validate:
+      message: "Too many VirtualServices"
+      deny:
+        conditions:
+          any:
+          - key: "{{ vscount }}"
+            operator: GreaterThan
+            value: 5
