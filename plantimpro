@@ -42,24 +42,22 @@ package "AKS Cluster" <<aks>> {
     [Pod: Spot, 2 CPU, 4GB] as pod_spot1 <<pod>>
     [Pod: Infra, 1 CPU, 2GB] as pod_infra1 <<pod>>
     [Spot Node: Standard_D4ls_v5] as spot_node1 <<node>>
-    [Infra Node] as infra_node1 <<node>>
   }
   package "Zone 2" {
     [Pod: Spot, 2 CPU, 4GB] as pod_spot2 <<pod>>
     [Pod: Infra, 1 CPU, 2GB] as pod_infra2 <<pod>>
     [Spot Node: Standard_D4ls_v5] as spot_node2 <<node>>
-    [Infra Node] as infra_node2 <<node>>
   }
   package "Zone 3" {
     [Pod: Spot, 2 CPU, 4GB] as pod_spot3 <<pod>>
     [Pod: Infra, 1 CPU, 2GB] as pod_infra3 <<pod>>
     [Spot Node: Standard_D4ls_v5] as spot_node3 <<node>>
-    [Infra Node] as infra_node3 <<node>>
   }
   [Kube-Scheduler] as scheduler <<aks>>
   [System Node Pool] as system_node <<node>>
   [High-Perf Nodes: Standard_E2s_v5\n(Zones 1,2,3)] as hp_nodes <<node>>
   [Logging Nodes: Standard_D4s_v3\n(Zones 1,2,3)] as log_nodes <<node>>
+  [Infra Nodes\n(Zones 1,2,3)] as infra_nodes <<node>>
 }
 
 package "Azure Cloud" <<azure>> {
@@ -97,12 +95,8 @@ scheduler -[#blue]-> spot_node1 : 10. Schedule Spot Pod (Zone 1)
 scheduler -[#blue]-> spot_node2 : 10. Schedule Spot Pod (Zone 2)
 scheduler -[#blue]-> spot_node3 : 10. Schedule Spot Pod (Zone 3)
 ' Infra provisioning (red)
-azure_api -[#red]-> infra_node1 : 11. Add Infra Node (Zone 1)
-azure_api -[#red]-> infra_node2 : 11. Add Infra Node (Zone 2)
-azure_api -[#red]-> infra_node3 : 11. Add Infra Node (Zone 3)
-scheduler -[#red]-> infra_node1 : 12. Schedule Infra Pod (Zone 1)
-scheduler -[#red]-> infra_node2 : 12. Schedule Infra Pod (Zone 2)
-scheduler -[#red]-> infra_node3 : 12. Schedule Infra Pod (Zone 3)
+azure_api -[#red]-> infra_nodes : 11. Add Infra Nodes (Zones 1,2,3)
+scheduler -[#red]-> infra_nodes : 12. Schedule Infra Pods (Zones 1,2,3)
 ' Other node provisioning
 controller --> np_hp : 13. Provision High-Perf Nodes (Zones 1,2,3)
 azure_api --> hp_nodes : 14. Add High-Perf Nodes
