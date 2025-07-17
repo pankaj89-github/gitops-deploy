@@ -34,7 +34,6 @@ package "Karpenter NAP" <<karpenter>> {
   [NodePool: Spot] as np_spot <<karpenter>>
   [NodePool: High-Perf] as np_hp <<karpenter>>
   [NodePool: Logging] as np_log <<karpenter>>
-  [NodePool: Infra] as np_infra <<karpenter>>
 }
 
 package "AKS Cluster" <<aks>> {
@@ -54,14 +53,13 @@ package "AKS Cluster" <<aks>> {
   [System Node Pool] as system_node <<node>>
   [High-Perf Nodes: Standard_E2s_v5\n(Zones 1,2,3)] as hp_nodes <<node>>
   [Logging Nodes: Standard_D4s_v3\n(Zones 1,2,3)] as log_nodes <<node>>
-  [Infra Nodes\n(Zones 1,2,3)] as infra_nodes <<node>>
 }
 
 package "Azure Cloud" <<azure>> {
   [Azure API: Virtual Machines] as azure_api <<azure>>
 }
 
-' Workflow (Spot: blue, Infra nodes only: red)
+' Workflow (Spot: blue)
 workload --> kyverno : 1. Deploy Pods (Spot)\nNamespace: workload=spot
 ' Spot workflow (blue)
 kyverno -[#blue]-> pod_spot1 : 2. Mutate: Add Labels + Node Affinity (Spot)
@@ -71,33 +69,26 @@ pod_spot1 -[#blue]-> scheduler : 3. Resource Request with Topology Constraints (
 pod_spot2 -[#blue]-> scheduler : 3. Resource Request with Topology Constraints (Spot)
 pod_spot3 -[#blue]-> scheduler : 3. Resource Request with Topology Constraints (Spot)
 scheduler -[#blue]-> pod_spot1 : 4. Unschedulable (Spot)
-' Common workflow steps
 scheduler --> controller : 5. Detect Unschedulable
 controller --> np_spot : 6. Evaluate Spot NodePool
-controller --> np_infra : 7. Evaluate Infra NodePool
-controller --> azure_api : 8. Provision VMs (Spot, Infra: Zones 1,2,3)
-' Spot provisioning (blue)
-azure_api -[#blue]-> spot_node1 : 9. Add Spot Node (Zone 1)
-azure_api -[#blue]-> spot_node2 : 9. Add Spot Node (Zone 2)
-azure_api -[#blue]-> spot_node3 : 9. Add Spot Node (Zone 3)
-scheduler -[#blue]-> spot_node1 : 10. Schedule Spot Pod (Zone 1)
-scheduler -[#blue]-> spot_node2 : 10. Schedule Spot Pod (Zone 2)
-scheduler -[#blue]-> spot_node3 : 10. Schedule Spot Pod (Zone 3)
-' Infra node provisioning (red)
-azure_api -[#red]-> infra_nodes : 11. Add Infra Nodes (Zones 1,2,3)
-' Other node provisioning
-controller --> np_hp : 12. Provision High-Perf Nodes (Zones 1,2,3)
-azure_api --> hp_nodes : 13. Add High-Perf Nodes
-controller --> np_log : 14. Provision Logging Nodes (Zones 1,2,3)
-azure_api --> log_nodes : 15. Add Logging Nodes
-controller --> system_node : 16. Consolidate (WhenEmpty, 30s)
+controller --> azure_api : 7. Provision VMs (Spot: Zones 1,2,3)
+azure_api -[#blue]-> spot_node1 : 8. Add Spot Node (Zone 1)
+azure_api -[#blue]-> spot_node2 : 8. Add Spot Node (Zone 2)
+azure_api -[#blue]-> spot_node3 : 8. Add Spot Node (Zone 3)
+scheduler -[#blue]-> spot_node1 : 9. Schedule Spot Pod (Zone 1)
+scheduler -[#blue]-> spot_node2 : 9. Schedule Spot Pod (Zone 2)
+scheduler -[#blue]-> spot_node3 : 9. Schedule Spot Pod (Zone 3)
+controller --> np_hp : 10. Provision High-Perf Nodes (Zones 1,2,3)
+azure_api --> hp_nodes : 11. Add High-Perf Nodes
+controller --> np_log : 12. Provision Logging Nodes (Zones 1,2,3)
+azure_api --> log_nodes : 13. Add Logging Nodes
+controller --> system_node : 14. Consolidate (WhenEmpty, 30s)
 
 ' Annotations
 note right of workload
   Deployment Spec:
   - Namespace: workload=spot
   - Toleration: karpenter.sh/disruption:NoSchedule
-
   - TopologySpreadConstraints:
     - maxSkew: 1
     - topologyKey: topology.kubernetes.io/zone
@@ -110,7 +101,6 @@ note right of kyverno
   - Adds required labels (e.g., app: azure-voting-app, env: prod)
   - Injects Node Affinity:
     - Spot: nodeSelector (instance-type: Standard_D4ls_v5)
-    - Infra: nodeSelector (role: infra)
     - High-Perf: nodeSelector (instance-type: Standard_E2s_v5)
     - Logging: nodeSelector (instance-type: Standard_D4s_v3)
 end note
@@ -143,12 +133,6 @@ end note
 note right of np_log
   NodePool: Logging
   instanceTypes: [D4s_v3]
-  zones: [zone-1, zone-2, zone-3]
-end note
-
-note right of np_infra
-  NodePool: Infra
-  nodeSelector: role=infra
   zones: [zone-1, zone-2, zone-3]
 end note
 
