@@ -40,17 +40,14 @@ package "Karpenter NAP" <<karpenter>> {
 package "AKS Cluster" <<aks>> {
   package "Zone 1" {
     [Pod: Spot, 2 CPU, 4GB] as pod_spot1 <<pod>>
-    [Pod: Infra, 1 CPU, 2GB] as pod_infra1 <<pod>>
     [Spot Node: Standard_D4ls_v5] as spot_node1 <<node>>
   }
   package "Zone 2" {
     [Pod: Spot, 2 CPU, 4GB] as pod_spot2 <<pod>>
-    [Pod: Infra, 1 CPU, 2GB] as pod_infra2 <<pod>>
     [Spot Node: Standard_D4ls_v5] as spot_node2 <<node>>
   }
   package "Zone 3" {
     [Pod: Spot, 2 CPU, 4GB] as pod_spot3 <<pod>>
-    [Pod: Infra, 1 CPU, 2GB] as pod_infra3 <<pod>>
     [Spot Node: Standard_D4ls_v5] as spot_node3 <<node>>
   }
   [Kube-Scheduler] as scheduler <<aks>>
@@ -64,8 +61,8 @@ package "Azure Cloud" <<azure>> {
   [Azure API: Virtual Machines] as azure_api <<azure>>
 }
 
-' Workflow (Spot: blue, Infra: red)
-workload --> kyverno : 1. Deploy Pods (Spot, Infra)\nNamespace: workload=spot/infra
+' Workflow (Spot: blue, Infra nodes only: red)
+workload --> kyverno : 1. Deploy Pods (Spot)\nNamespace: workload=spot
 ' Spot workflow (blue)
 kyverno -[#blue]-> pod_spot1 : 2. Mutate: Add Labels + Node Affinity (Spot)
 kyverno -[#blue]-> pod_spot2 : 2. Mutate: Add Labels + Node Affinity (Spot)
@@ -74,14 +71,6 @@ pod_spot1 -[#blue]-> scheduler : 3. Resource Request with Topology Constraints (
 pod_spot2 -[#blue]-> scheduler : 3. Resource Request with Topology Constraints (Spot)
 pod_spot3 -[#blue]-> scheduler : 3. Resource Request with Topology Constraints (Spot)
 scheduler -[#blue]-> pod_spot1 : 4. Unschedulable (Spot)
-' Infra workflow (red)
-kyverno -[#red]-> pod_infra1 : 2. Mutate: Add Labels + Node Affinity (Infra)
-kyverno -[#red]-> pod_infra2 : 2. Mutate: Add Labels + Node Affinity (Infra)
-kyverno -[#red]-> pod_infra3 : 2. Mutate: Add Labels + Node Affinity (Infra)
-pod_infra1 -[#red]-> scheduler : 3. Resource Request with Topology Constraints (Infra)
-pod_infra2 -[#red]-> scheduler : 3. Resource Request with Topology Constraints (Infra)
-pod_infra3 -[#red]-> scheduler : 3. Resource Request with Topology Constraints (Infra)
-scheduler -[#red]-> pod_infra1 : 4. Unschedulable (Infra)
 ' Common workflow steps
 scheduler --> controller : 5. Detect Unschedulable
 controller --> np_spot : 6. Evaluate Spot NodePool
@@ -94,21 +83,21 @@ azure_api -[#blue]-> spot_node3 : 9. Add Spot Node (Zone 3)
 scheduler -[#blue]-> spot_node1 : 10. Schedule Spot Pod (Zone 1)
 scheduler -[#blue]-> spot_node2 : 10. Schedule Spot Pod (Zone 2)
 scheduler -[#blue]-> spot_node3 : 10. Schedule Spot Pod (Zone 3)
-' Infra provisioning (red)
+' Infra node provisioning (red)
 azure_api -[#red]-> infra_nodes : 11. Add Infra Nodes (Zones 1,2,3)
-scheduler -[#red]-> infra_nodes : 12. Schedule Infra Pods (Zones 1,2,3)
 ' Other node provisioning
-controller --> np_hp : 13. Provision High-Perf Nodes (Zones 1,2,3)
-azure_api --> hp_nodes : 14. Add High-Perf Nodes
-controller --> np_log : 15. Provision Logging Nodes (Zones 1,2,3)
-azure_api --> log_nodes : 16. Add Logging Nodes
-controller --> system_node : 17. Consolidate (WhenEmpty, 30s)
+controller --> np_hp : 12. Provision High-Perf Nodes (Zones 1,2,3)
+azure_api --> hp_nodes : 13. Add High-Perf Nodes
+controller --> np_log : 14. Provision Logging Nodes (Zones 1,2,3)
+azure_api --> log_nodes : 15. Add Logging Nodes
+controller --> system_node : 16. Consolidate (WhenEmpty, 30s)
 
 ' Annotations
 note right of workload
   Deployment Spec:
-  - Namespace: workload=spot/infra
+  - Namespace: workload=spot
   - Toleration: karpenter.sh/disruption:NoSchedule
+
   - TopologySpreadConstraints:
     - maxSkew: 1
     - topologyKey: topology.kubernetes.io/zone
@@ -162,4 +151,5 @@ note right of np_infra
   nodeSelector: role=infra
   zones: [zone-1, zone-2, zone-3]
 end note
+
 @enduml
