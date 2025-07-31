@@ -10,6 +10,23 @@
   "liveNow": false,
   "panels": [
     {
+      "content": "**Metric: karpenter_pods_state**\n\n**Description**: This metric tracks the state of pods managed by Karpenter, labeled by pod, namespace, owner, node, nodepool, zone, architecture, capacity_type, instance_type, and phase (e.g., Running, Pending). It shows the number of pods in each phase.\n\n**Implications**: High counts of pods in `Pending` state may indicate insufficient node capacity or provisioning delays. A large number of `Failed` pods could signal configuration issues or resource constraints. Monitoring this helps ensure pods are scheduled efficiently and identifies bottlenecks in node provisioning.",
+      "datasource": {
+        "type": "text",
+        "uid": "text"
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 12,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "mode": "markdown",
+      "title": "Pods State Description",
+      "type": "text"
+    },
+    {
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
@@ -22,19 +39,19 @@
           "custom": {
             "axisCenteredZero": false,
             "axisColorMode": "text",
-            "axisLabel": "",
+            "axisLabel": "Pods",
             "axisPlacement": "auto",
             "barAlignment": 0,
             "drawStyle": "line",
-            "fillOpacity": 10,
-            "gradientMode": "none",
+            "fillOpacity": 20,
+            "gradientMode": "opacity",
             "hideFrom": {
               "legend": false,
               "tooltip": false,
               "viz": false
             },
             "lineInterpolation": "linear",
-            "lineWidth": 1,
+            "lineWidth": 2,
             "pointSize": 5,
             "scaleDistribution": {
               "type": "linear"
@@ -43,38 +60,82 @@
             "spanNulls": false,
             "stacking": {
               "group": "A",
-              "mode": "none"
+              "mode": "normal"
             },
             "thresholdsStyle": {
-              "mode": "off"
+              "mode": "line"
             }
           },
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
-            "steps": []
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 10
+              },
+              {
+                "color": "red",
+                "value": 20
+              }
+            ]
           },
           "unit": "none"
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": ".*Pending.*"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "orange",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": ".*Failed.*"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "red",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 0
+        "y": 3
       },
-      "id": 1,
+      "id": 2,
       "options": {
         "legend": {
-          "calcs": [],
-          "displayMode": "list",
+          "calcs": ["last", "mean"],
+          "displayMode": "table",
           "placement": "bottom",
           "showLegend": true
         },
         "tooltip": {
           "mode": "multi",
-          "sort": "none"
+          "sort": "desc"
         }
       },
       "targets": [
@@ -83,7 +144,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "karpenter_pods_state{cluster=\"$cluster\"}",
+          "expr": "sum(karpenter_pods_state{cluster=\"$cluster\"}) by (pod, phase)",
           "legendFormat": "{{pod}} - {{phase}}",
           "refId": "A"
         }
@@ -92,168 +153,21 @@
       "type": "timeseries"
     },
     {
+      "content": "**Metric: karpenter_nodes_created_total**\n\n**Description**: This counter metric tracks the total number of nodes created by Karpenter, labeled by nodepool. It increments each time a new node is provisioned.\n\n**Implications**: A high rate of node creation may indicate frequent scaling due to workload demands or inefficient node utilization. Sudden spikes could signal bursts in demand or misconfigured nodepools. Monitoring this helps optimize provisioning strategies and control costs.",
       "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 10,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": []
-          },
-          "unit": "none"
-        },
-        "overrides": []
+        "type": "text",
+        "uid": "text"
       },
       "gridPos": {
-        "h": 8,
+        "h": 3,
         "w": 12,
         "x": 12,
         "y": 0
       },
-      "id": 2,
-      "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "none"
-        }
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "sum(karpenter_nodes_created_total{cluster=\"$cluster\"}) by (nodepool)",
-          "legendFormat": "{{nodepool}}",
-          "refId": "A"
-        }
-      ],
-      "title": "Total Nodes Created",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "${datasource}"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 10,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": []
-          },
-          "unit": "none"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 8
-      },
       "id": 3,
-      "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "none"
-        }
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${datasource}"
-          },
-          "expr": "sum(karpenter_nodes_terminated_total{cluster=\"$cluster\"}) by (nodepool, reason)",
-          "legendFormat": "{{nodepool}} - {{reason}}",
-          "refId": "A"
-        }
-      ],
-      "title": "Total Nodes Terminated",
-      "type": "timeseries"
+      "mode": "markdown",
+      "title": "Total Nodes Created Description",
+      "type": "text"
     },
     {
       "datasource": {
@@ -268,19 +182,19 @@
           "custom": {
             "axisCenteredZero": false,
             "axisColorMode": "text",
-            "axisLabel": "",
+            "axisLabel": "Nodes",
             "axisPlacement": "auto",
             "barAlignment": 0,
             "drawStyle": "line",
             "fillOpacity": 10,
-            "gradientMode": "none",
+            "gradientMode": "opacity",
             "hideFrom": {
               "legend": false,
               "tooltip": false,
               "viz": false
             },
             "lineInterpolation": "linear",
-            "lineWidth": 1,
+            "lineWidth": 2,
             "pointSize": 5,
             "scaleDistribution": {
               "type": "linear"
@@ -292,13 +206,26 @@
               "mode": "none"
             },
             "thresholdsStyle": {
-              "mode": "off"
+              "mode": "line"
             }
           },
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
-            "steps": []
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 50
+              },
+              {
+                "color": "red",
+                "value": 100
+              }
+            ]
           },
           "unit": "none"
         },
@@ -308,19 +235,19 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 8
+        "y": 3
       },
       "id": 4,
       "options": {
         "legend": {
-          "calcs": [],
-          "displayMode": "list",
+          "calcs": ["last", "mean"],
+          "displayMode": "table",
           "placement": "bottom",
           "showLegend": true
         },
         "tooltip": {
           "mode": "multi",
-          "sort": "none"
+          "sort": "desc"
         }
       },
       "targets": [
@@ -329,13 +256,30 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum(karpenter_nodeclaims_disrupted_total{cluster=\"$cluster\"}) by (nodepool, reason)",
-          "legendFormat": "{{nodepool}} - {{reason}}",
+          "expr": "sum(rate(karpenter_nodes_created_total{cluster=\"$cluster\"}[5m])) by (nodepool)",
+          "legendFormat": "{{nodepool}}",
           "refId": "A"
         }
       ],
-      "title": "Total NodeClaims Disrupted",
+      "title": "Node Creation Rate",
       "type": "timeseries"
+    },
+    {
+      "content": "**Metric: karpenter_nodes_terminated_total**\n\n**Description**: This counter metric tracks the total number of nodes terminated by Karpenter, labeled by nodepool and reason (e.g., consolidation, drift). It increments when nodes are removed.\n\n**Implications**: Frequent terminations may indicate aggressive consolidation or node drift (e.g., outdated instance types). High termination rates could disrupt workloads if not balanced with sufficient node creation. This metric helps assess cluster stability and consolidation efficiency.",
+      "datasource": {
+        "type": "text",
+        "uid": "text"
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 12,
+        "x": 0,
+        "y": 11
+      },
+      "id": 5,
+      "mode": "markdown",
+      "title": "Total Nodes Terminated Description",
+      "type": "text"
     },
     {
       "datasource": {
@@ -350,19 +294,19 @@
           "custom": {
             "axisCenteredZero": false,
             "axisColorMode": "text",
-            "axisLabel": "",
+            "axisLabel": "Nodes",
             "axisPlacement": "auto",
             "barAlignment": 0,
             "drawStyle": "line",
             "fillOpacity": 10,
-            "gradientMode": "none",
+            "gradientMode": "opacity",
             "hideFrom": {
               "legend": false,
               "tooltip": false,
               "viz": false
             },
             "lineInterpolation": "linear",
-            "lineWidth": 1,
+            "lineWidth": 2,
             "pointSize": 5,
             "scaleDistribution": {
               "type": "linear"
@@ -374,13 +318,26 @@
               "mode": "none"
             },
             "thresholdsStyle": {
-              "mode": "off"
+              "mode": "line"
             }
           },
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
-            "steps": []
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 20
+              },
+              {
+                "color": "red",
+                "value": 50
+              }
+            ]
           },
           "unit": "none"
         },
@@ -390,19 +347,243 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 16
+        "y": 14
       },
-      "id": 5,
+      "id": 6,
       "options": {
         "legend": {
-          "calcs": [],
-          "displayMode": "list",
+          "calcs": ["last", "mean"],
+          "displayMode": "table",
           "placement": "bottom",
           "showLegend": true
         },
         "tooltip": {
           "mode": "multi",
-          "sort": "none"
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(rate(karpenter_nodes_terminated_total{cluster=\"$cluster\"}[5m])) by (nodepool, reason)",
+          "legendFormat": "{{nodepool}} - {{reason}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Node Termination Rate",
+      "type": "timeseries"
+    },
+    {
+      "content": "**Metric: karpenter_nodeclaims_disrupted_total**\n\n**Description**: This counter metric tracks the total number of nodeclaims disrupted by Karpenter, labeled by nodepool and reason (e.g., consolidation, drift). A nodeclaim represents a request for a node.\n\n**Implications**: High disruption counts may indicate frequent workload interruptions due to node replacement or consolidation. This could affect application performance if not managed properly. Monitoring this helps balance cost optimization with workload stability.",
+      "datasource": {
+        "type": "text",
+        "uid": "text"
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 12,
+        "x": 12,
+        "y": 11
+      },
+      "id": 7,
+      "mode": "markdown",
+      "title": "Total NodeClaims Disrupted Description",
+      "type": "text"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "NodeClaims",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "opacity",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "line"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 10
+              },
+              {
+                "color": "red",
+                "value": 20
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 14
+      },
+      "id": 8,
+      "options": {
+        "legend": {
+          "calcs": ["last", "mean"],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(rate(karpenter_nodeclaims_disrupted_total{cluster=\"$cluster\"}[5m])) by (nodepool, reason)",
+          "legendFormat": "{{nodepool}} - {{reason}}",
+          "refId": "A"
+        }
+      ],
+      "title": "NodeClaims Disruption Rate",
+      "type": "timeseries"
+    },
+    {
+      "content": "**Metric: karpenter_voluntary_disruption_eligible_nodes**\n\n**Description**: This gauge metric shows the number of nodes eligible for voluntary disruption (e.g., consolidation or replacement) by Karpenter, labeled by nodepool.\n\n**Implications**: A high number of eligible nodes may indicate over-provisioning or underutilized nodes, leading to potential cost savings through consolidation. Low counts suggest efficient resource usage or limited consolidation opportunities. This metric helps optimize cluster efficiency.",
+      "datasource": {
+        "type": "text",
+        "uid": "text"
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 12,
+        "x": 0,
+        "y": 22
+      },
+      "id": 9,
+      "mode": "markdown",
+      "title": "Voluntary Disruption Eligible Nodes Description",
+      "type": "text"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "Nodes",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "gradientMode": "opacity",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "line"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 5
+              },
+              {
+                "color": "red",
+                "value": 10
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 25
+      },
+      "id": 10,
+      "options": {
+        "legend": {
+          "calcs": ["last", "mean"],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
         }
       },
       "targets": [
@@ -420,6 +601,23 @@
       "type": "timeseries"
     },
     {
+      "content": "**Metric: karpenter_voluntary_disruption_decisions_total**\n\n**Description**: This counter metric tracks the total number of voluntary disruption decisions made by Karpenter, labeled by reason and consolidation_type (e.g., empty, underutilized). It increments when Karpenter decides to disrupt a node.\n\n**Implications**: Frequent decisions may indicate active cost optimization but could risk workload interruptions if overly aggressive. Monitoring this ensures a balance between cost savings and application stability.",
+      "datasource": {
+        "type": "text",
+        "uid": "text"
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 12,
+        "x": 12,
+        "y": 22
+      },
+      "id": 11,
+      "mode": "markdown",
+      "title": "Total Voluntary Disruption Decisions Description",
+      "type": "text"
+    },
+    {
       "datasource": {
         "type": "prometheus",
         "uid": "${datasource}"
@@ -432,19 +630,19 @@
           "custom": {
             "axisCenteredZero": false,
             "axisColorMode": "text",
-            "axisLabel": "",
+            "axisLabel": "Decisions",
             "axisPlacement": "auto",
             "barAlignment": 0,
             "drawStyle": "line",
             "fillOpacity": 10,
-            "gradientMode": "none",
+            "gradientMode": "opacity",
             "hideFrom": {
               "legend": false,
               "tooltip": false,
               "viz": false
             },
             "lineInterpolation": "linear",
-            "lineWidth": 1,
+            "lineWidth": 2,
             "pointSize": 5,
             "scaleDistribution": {
               "type": "linear"
@@ -456,13 +654,26 @@
               "mode": "none"
             },
             "thresholdsStyle": {
-              "mode": "off"
+              "mode": "line"
             }
           },
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
-            "steps": []
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 5
+              },
+              {
+                "color": "red",
+                "value": 10
+              }
+            ]
           },
           "unit": "none"
         },
@@ -472,19 +683,19 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 16
+        "y": 25
       },
-      "id": 6,
+      "id": 12,
       "options": {
         "legend": {
-          "calcs": [],
-          "displayMode": "list",
+          "calcs": ["last", "mean"],
+          "displayMode": "table",
           "placement": "bottom",
           "showLegend": true
         },
         "tooltip": {
           "mode": "multi",
-          "sort": "none"
+          "sort": "desc"
         }
       },
       "targets": [
@@ -493,12 +704,12 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum(karpenter_voluntary_disruption_decisions_total{cluster=\"$cluster\"}) by (reason, consolidation_type)",
+          "expr": "sum(rate(karpenter_voluntary_disruption_decisions_total{cluster=\"$cluster\"}[5m])) by (reason, consolidation_type)",
           "legendFormat": "{{reason}} - {{consolidation_type}}",
           "refId": "A"
         }
       ],
-      "title": "Total Voluntary Disruption Decisions",
+      "title": "Voluntary Disruption Decisions Rate",
       "type": "timeseries"
     }
   ],
@@ -550,7 +761,7 @@
   },
   "timezone": "",
   "title": "Karpenter Monitoring Dashboard",
-  "uid": "karpenter-monitoring",
+  "uid": "karpenter-monitoring-detailed",
   "version": 1,
   "weekStart": ""
 }
