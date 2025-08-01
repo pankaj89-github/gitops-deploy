@@ -1,0 +1,44 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: add-node-and-pod-anti-affinity
+  annotations:
+    policies.kyverno.io/title: Add Node Affinity and Pod Anti-Affinity
+    policies.kyverno.io/category: Scheduling
+    policies.kyverno.io/severity: medium
+    policies.kyverno.io/subject: Deployment, Pod
+    policies.kyverno.io/description: >-
+      This policy adds node affinity to schedule pods on nodes with a specific label
+      for all Deployments. It adds pod anti-affinity to spread pods across different
+      nodes if an 'app' label exists; otherwise, it uses the Deployment name as a fallback
+      selector for anti-affinity.
+spec:
+  rules:
+    - name: add-affinity
+      match:
+        any:
+        - resources:
+            kinds:
+            - Deployment
+      mutate:
+        patchStrategicMerge:
+          spec:
+            template:
+              spec:
+                affinity:
+                  nodeAffinity:
+                    requiredDuringSchedulingIgnoredDuringExecution:
+                      nodeSelectorTerms:
+                      - matchExpressions:
+                        - key: zone_weight
+                          operator: In
+                          values:
+                          - high-performance
+                  podAntiAffinity:
+                    preferredDuringSchedulingIgnoredDuringExecution:
+                    - weight: 100
+                      podAffinityTerm:
+                        labelSelector:
+                          matchLabels:
+                            app: "{{request.object.spec.template.metadata.labels.app || request.object.metadata.name}}"
+                        topologyKey: kubernetes.io/hostname
