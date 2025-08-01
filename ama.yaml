@@ -1,0 +1,27 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: patch-ama-metrics-settings
+spec:
+  mutateExistingOnPolicyUpdate: true
+  rules:
+  - name: add-data-to-ama-metrics
+    match:
+      any:
+      - resources:
+          kinds:
+          - ConfigMap
+          names:
+          - ama-metrics-settings-configmap
+          namespaces:
+          - kube-system
+    mutate:
+      patchesJson6902: |-
+        - path: "/data/default-targets-metrics-keep-list"
+          op: add
+          value: |-
+            windowsexporter = ""
+        - path: "/data/default-targets-scrape-interval-settings"
+          op: add
+          value: |-
+            windowsexporter = "30s"
