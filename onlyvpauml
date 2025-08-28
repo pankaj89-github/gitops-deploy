@@ -1,0 +1,34 @@
+@startuml
+actor "Developers" as Dev
+participant "Pod Resource Usage" as Usage
+participant "VPA Recommender" as Recommender
+participant "VPA Updater" as Updater
+participant "Kubernetes Scheduler" as Scheduler
+participant "Cluster" as Cluster
+
+Dev -> Cluster: Deploy pods (Non-GPU: CPU=500m, Mem=1Gi)
+Cluster -> Cluster: Pods run for some time
+Cluster -> Usage: Resource usage changes (CPU/Mem spike)
+Usage -> Recommender: Monitor usage (via Metrics Server/Prometheus)
+Recommender -> Recommender: Calculate optimal requests
+note right: e.g., CPU: 500m→2000m, Mem: 1Gi→4Gi
+Recommender -> Updater: Recommend new resource requests
+Updater -> Cluster: Apply new requests (Auto mode: Evict pods)
+note right: Updates pod spec, triggers rescheduling
+Updater -> Scheduler: Update pod resource requests
+Scheduler -> Scheduler: Attempt to schedule pods
+alt Pods Schedulable
+    Scheduler -> Cluster: Schedule pods successfully
+else Pods Unschedulable
+    Scheduler -> Cluster: Pods remain unschedulable
+    Cluster -> Cluster: Pod failures or pending state
+end alt
+Usage -> Recommender: Re-evaluate resource usage
+note right: e.g., CPU: 2000m→300m, Mem: 4Gi→1Gi
+Recommender -> Updater: Recommend reduced requests
+Updater -> Cluster: Apply new requests (evict pods)
+Updater -> Scheduler: Update pod resource requests
+Scheduler -> Cluster: Attempt to schedule pods
+Cluster -> Cluster: Instability (frequent evictions, latency, failures)
+Recommender -> Recommender: Continue monitoring (loop)
+@enduml
