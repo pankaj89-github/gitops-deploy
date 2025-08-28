@@ -1,0 +1,31 @@
+@startuml
+actor "Developers" as Dev
+participant "Pod Resource Usage" as Usage
+participant "VPA" as VPA
+participant "Kubernetes Scheduler" as Scheduler
+participant "Node Auto-Provisioning (NAP)" as NAP
+participant "Cluster" as Cluster
+
+Dev -> Cluster: Deploy pods (Non-GPU: CPU=500m, Mem=1Gi)
+Cluster -> Cluster: Pods run for some time
+Cluster -> Usage: Resource usage changes (CPU/Mem spike)
+Usage -> VPA: Monitor usage
+VPA -> VPA: Update pod requests
+note right: e.g., CPU: 500m→2000m, Mem: 1Gi→4Gi
+VPA -> Scheduler: Update pod resource requests
+Scheduler -> Scheduler: Attempt to schedule pods
+Scheduler -> NAP: Pods unschedulable due to insufficient CPU/Mem
+NAP -> NAP: Provision new node(s) (e.g., Standard_D8s_v3)
+NAP -> Cluster: Add node(s) to cluster
+Scheduler -> Cluster: Schedule pods on new node(s)
+VPA -> VPA: Re-evaluate resource usage
+note right: e.g., CPU: 2000m→300m, Mem: 4Gi→1Gi
+VPA -> Scheduler: Update pod resource requests
+NAP -> NAP: Detect underutilized nodes
+NAP -> Cluster: Deprovision node(s), evict pods
+note right: Consolidates pods, may cause delays
+Cluster -> Cluster: Reschedule pods (potential delays/failures)
+Cluster -> Cluster: Instability (latency, resource contention)
+VPA -> VPA: Continue monitoring (loop)
+
+@enduml
