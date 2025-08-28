@@ -1,0 +1,7 @@
+Mitigation Strategies
+To minimize instability:
+Use Recommendation Mode: Set updateMode: "Off" or "Initial" to test recommendations without automatic evictions.
+Set Strict Limits: Define CPU/memory limits in the deployment to constrain VPA adjustments.
+Increase Node Capacity: Add nodes or use larger node types (e.g., Standard_D8s_v3) to handle spikes.
+Throttle VPA Updates: Configure longer observation periods to reduce eviction frequency.
+Monitor with Azure Monitor: Track evictions and Pending pods to identify instability.
