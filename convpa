@@ -1,0 +1,9 @@
+Conceptual Overview of VPA Functionality in AKS (Without NAP)
+The Vertical Pod Autoscaler (VPA) in AKS automatically adjusts pod CPU and memory requests based on observed usage to optimize resource utilization and performance. Without NAP, the cluster relies on a fixed set of nodes, and VPA’s adjustments can lead to instability if pods become unschedulable due to insufficient node resources or frequent evictions. The workflow includes:
+Developers Deploy Pods: Pods are deployed with initial CPU and memory requests.
+Pods Run for Some Time: Workloads operate normally until usage changes.
+Resource Usage Changes: CPU/memory usage spikes due to increased workload demands.
+VPA Monitors and Adjusts: VPA’s Recommender analyzes usage and recommends new requests; the Updater applies them (in Auto mode) by evicting pods.
+Scheduler Reschedules Pods: Updated requests may make pods unschedulable if nodes lack capacity, leading to pod failures or delays.
+Instability: Frequent evictions and rescheduling attempts cause latency, resource contention, or pod failures.
+Since NAP is excluded, the workflow assumes a static node pool, amplifying instability when VPA’s adjustments exceed available node capacity.
