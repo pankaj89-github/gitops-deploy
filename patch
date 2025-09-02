@@ -1,0 +1,20 @@
+#!/bin/bash
+
+# Define the exact key-value pairs from the image
+NEW_SCRAPE_SETTING="controlplane-node-auto-provisioning = true"
+NEW_TARGET_SETTING="default-targets-metrics-keep-list = \"\""
+
+# Create a temporary patch file
+cat <<EOF > patch.yaml
+data:
+  default-scrape-settings-enabled:
+    - ${NEW_SCRAPE_SETTING}
+  default-targets-metrics-keep-list:
+    - ${NEW_TARGET_SETTING}
+EOF
+
+# Apply the patch to the ConfigMap
+kubectl patch configmap ama-metrics-settings-configmap -n kube-system --patch "$(cat patch.yaml)" --type merge
+
+# Clean up
+rm patch.yaml
