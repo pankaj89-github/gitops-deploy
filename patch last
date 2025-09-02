@@ -1,0 +1,45 @@
+#!/bin/bash
+
+# Namespace and ConfigMap name
+NAMESPACE="kube-system"
+CONFIGMAP="ama-metrics-settings-configmap"
+
+# Get current values and handle if they are missing
+current_scrape=$(kubectl get configmap $CONFIGMAP -n $NAMESPACE -o jsonpath='{.data.default-scrape-settings-enabled}' 2>/dev/null || echo "")
+current_keep=$(kubectl get configmap $CONFIGMAP -n $NAMESPACE -o jsonpath='{.data.default-targets-metrics-keep-list}' 2>/dev/null || echo "")
+
+# Remove any trailing newlines or whitespace
+current_scrape=$(echo "$current_scrape" | sed '/^\s*$/d')
+current_keep=$(echo "$current_keep" | sed '/^\s*$/d')
+
+# New lines to add
+new_scrape="controlplane-node-auto-provisioning = false"
+new_keep='controlplane-node-auto-provisioning = ""'
+
+# Append new lines only if not present
+if [[ -n "$current_scrape" && ! "$current_scrape" =~ "$new_scrape" ]]; then
+  updated_scrape="${current_scrape}\\n${new_scrape}"
+else
+  updated_scrape="${current_scrape:-$new_scrape}"
+fi
+if [[ -n "$current_keep" && ! "$current_keep" =~ "$new_keep" ]]; then
+  updated_keep="${current_keep}\\n${new_keep}"
+else
+  updated_keep="${current_keep:-$new_keep}"
+fi
+
+# Construct the patch payload using a here-document with proper JSON formatting
+patch=$(cat <<EOF
+{
+  "data": {
+    "default-scrape-settings-enabled": "$updated_scrape",
+    "default-targets-metrics-keep-list": "$updated_keep"
+  }
+}
+EOF
+)
+
+# Apply the patch
+echo "$patch" | kubectl patch configmap $CONFIGMAP -n $NAMESPACE --type merge -p @-
+
+echo "Patch applied. Check the ConfigMap with: kubectl get configmap $CONFIGMAP -n $NAMESPACE -o yaml"
