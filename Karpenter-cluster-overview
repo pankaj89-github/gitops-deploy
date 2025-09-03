@@ -1,0 +1,362 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "gnetId": null,
+  "graphTooltip": 0,
+  "links": [],
+  "panels": [
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "Shows the number of pods in the Pending state, grouped by cluster and namespace.\n\n**Implication**: A high number of pending pods may indicate insufficient node capacity, misconfigured node pools, or issues with Karpenter's provisioning (e.g., Azure quota limits or spot instance unavailability). Investigate Karpenter logs or node provisioning errors if pending pods persist.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 1 }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "options": {
+        "showHeader": true,
+        "sortBy": [
+          { "desc": true, "displayName": "Value" }
+        ]
+      },
+      "pluginVersion": "8.3.3",
+      "targets": [
+        {
+          "expr": "sum by (cluster, namespace) (karpenter_pods_state{status=\"Pending\", cluster=~\"$cluster\", namespace=~\"$namespace\"}) > 0",
+          "format": "table",
+          "legendFormat": "{{cluster}} - {{namespace}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Pending Pods by Cluster and Namespace",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "Shows the total number of nodes created by Karpenter, grouped by cluster.\n\n**Implication**: A high number of nodes created may indicate frequent scaling due to workload demands or inefficient pod scheduling. Compare with nodes terminated to assess cluster stability. Sudden spikes could suggest misconfigured workloads or resource constraints.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": []
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 0,
+        "y": 8
+      },
+      "id": 2,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "8.3.3",
+      "targets": [
+        {
+          "expr": "sum by (cluster) (karpenter_nodes_created_total{cluster=~\"$cluster\"})",
+          "format": "time_series",
+          "legendFormat": "{{cluster}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Total Nodes Created by Cluster",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "Shows the total number of nodes terminated by Karpenter, grouped by cluster.\n\n**Implication**: Frequent node terminations may indicate aggressive consolidation or spot instance interruptions. Compare with nodes created to understand churn rate. High termination rates could lead to pod disruptions and affect workload stability.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": []
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 6,
+        "y": 8
+      },
+      "id": 3,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "8.3.3",
+      "targets": [
+        {
+          "expr": "sum by (cluster) (karpenter_nodes_terminated_total{cluster=~\"$cluster\"})",
+          "format": "time_series",
+          "legendFormat": "{{cluster}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Total Nodes Terminated by Cluster",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "Shows the total number of node claims disrupted by Karpenter, grouped by cluster.\n\n**Implication**: Disruptions occur when Karpenter terminates nodes (e.g., for consolidation or spot interruptions), affecting pods. A high number may indicate aggressive cost optimization or unstable node pools, potentially causing application downtime.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": []
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 12,
+        "y": 8
+      },
+      "id": 4,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "8.3.3",
+      "targets": [
+        {
+          "expr": "sum by (cluster) (karpenter_nodeclaims_disrupted_total{cluster=~\"$cluster\"})",
+          "format": "time_series",
+          "legendFormat": "{{cluster}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Node Claims Disrupted by Cluster",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "Shows the total number of voluntary disruption decisions made by Karpenter, grouped by cluster.\n\n**Implication**: Indicates how often Karpenter decides to disrupt nodes (e.g., for consolidation). High values may suggest frequent cost-saving actions, but excessive disruptions could impact workload reliability if not balanced with pod stability.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": []
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 18,
+        "y": 8
+      },
+      "id": 5,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "8.3.3",
+      "targets": [
+        {
+          "expr": "sum by (cluster) (karpenter_voluntary_disruption_decisions_total{cluster=~\"$cluster\"})",
+          "format": "time_series",
+          "legendFormat": "{{cluster}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Voluntary Disruption Decisions by Cluster",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "Shows the number of nodes eligible for voluntary disruption, grouped by cluster.\n\n**Implication**: Indicates nodes that Karpenter considers for termination (e.g., underutilized nodes). A high number suggests potential for cost savings through consolidation, but frequent disruptions may affect workload performance if not managed carefully.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": []
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 12
+      },
+      "id": 6,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      },
+      "pluginVersion": "8.3.3",
+      "targets": [
+        {
+          "expr": "sum by (cluster) (karpenter_voluntary_disruption_eligible_nodes{cluster=~\"$cluster\"})",
+          "format": "time_series",
+          "legendFormat": "{{cluster}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Voluntary Disruption Eligible Nodes by Cluster",
+      "type": "timeseries"
+    }
+  ],
+  "schemaVersion": 36,
+  "style": "dark",
+  "tags": ["karpenter", "aks", "overview"],
+  "templating": {
+    "list": [
+      {
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
+        },
+        "hide": 0,
+        "includeAll": true,
+        "multi": true,
+        "name": "cluster",
+        "options": [],
+        "query": "label_values(karpenter_pods_state, cluster)",
+        "queryValue": "",
+        "skipUrlSync": false,
+        "type": "query"
+      },
+      {
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
+        },
+        "hide": 0,
+        "includeAll": true,
+        "multi": true,
+        "name": "namespace",
+        "options": [],
+        "query": "label_values(karpenter_pods_state{cluster=~\"$cluster\"}, namespace)",
+        "queryValue": "",
+        "skipUrlSync": false,
+        "type": "query"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-24h",
+    "to": "now"
+  },
+  "timepicker": {
+    "refresh_intervals": ["5s", "10s", "30s", "1m", "5m", "15m", "30m", "1h", "2h", "1d"],
+    "time_options": ["5m", "15m", "1h", "6h", "12h", "24h", "2d", "7d", "30d"]
+  },
+  "timezone": "",
+  "title": "Karpenter Cluster Overview",
+  "uid": "karpenter-cluster-overview"
+}
