@@ -1,0 +1,582 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "title": "Pod States",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 50 },
+              { "color": "green", "value": 80 }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Pending Pods (%)"
+            },
+            "properties": [
+              { "id": "unit", "value": "percent" },
+              { "id": "thresholds", "value": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "red", "value": null },
+                  { "color": "yellow", "value": 10 },
+                  { "color": "green", "value": 5 }
+                ]
+              }}
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Running Pods (%)"
+            },
+            "properties": [
+              { "id": "unit", "value": "percent" }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Failed Pods (%)"
+            },
+            "properties": [
+              { "id": "unit", "value": "percent" },
+              { "id": "thresholds", "value": {
+                "mode": "absolute",
+                "steps": [
+                  { "color": "red", "value": null },
+                  { "color": "yellow", "value": 5 },
+                  { "color": "green", "value": 0 }
+                ]
+              }}
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "sum(karpenter_pods_state{cluster=\"${cluster}\", phase=\"Pending\"})",
+          "legendFormat": "Pending Pods",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "100 * sum(karpenter_pods_state{cluster=\"${cluster}\", phase=\"Pending\"}) / sum(karpenter_pods_state{cluster=\"${cluster}\"})",
+          "legendFormat": "Pending Pods (%)",
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "100 * sum(karpenter_pods_state{cluster=\"${cluster}\", phase=\"Running\"}) / sum(karpenter_pods_state{cluster=\"${cluster}\"})",
+          "legendFormat": "Running Pods (%)",
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "100 * sum(karpenter_pods_state{cluster=\"${cluster}\", phase=\"Failed\"}) / sum(karpenter_pods_state{cluster=\"${cluster}\"})",
+          "legendFormat": "Failed Pods (%)",
+          "refId": "D"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "sum by (nodepool) (karpenter_pods_state{cluster=\"${cluster}\", phase=\"Pending\"})",
+          "legendFormat": "Pending Pods - {{nodepool}}",
+          "refId": "E"
+        }
+      ]
+    },
+    {
+      "title": "Nodes Created",
+      "type": "table",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Percentage (%)"
+            },
+            "properties": [
+              { "id": "unit", "value": "percent" }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 0
+      },
+      "id": 2,
+      "options": {
+        "showHeader": true,
+        "footer": {
+          "show": false,
+          "reducer": ["sum"],
+          "fields": []
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "sum(karpenter_nodes_created_total{cluster=\"${cluster}\"})",
+          "legendFormat": "Total Nodes Created",
+          "format": "table",
+          "instant": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "100 * sum by (nodepool) (karpenter_nodes_created_total{cluster=\"${cluster}\"}) / sum(karpenter_nodes_created_total{cluster=\"${cluster}\"})",
+          "legendFormat": "{{nodepool}} - Percentage",
+          "format": "table",
+          "instant": true,
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "sum by (nodepool) (karpenter_nodes_created_total{cluster=\"${cluster}\"})",
+          "legendFormat": "{{nodepool}} - Nodes",
+          "format": "table",
+          "instant": true,
+          "refId": "C"
+        }
+      ]
+    },
+    {
+      "title": "Nodes Created Rate",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "Nodes/s",
+            "axisPlacement": "auto",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null }
+            ]
+          },
+          "unit": "ops"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 8
+      },
+      "id": 3,
+      "options": {
+        "legend": {
+          "calcs": ["lastNotNull"],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "rate(karpenter_nodes_created_total{cluster=\"${cluster}\"}[5m])",
+          "legendFormat": "{{nodepool}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Nodes Terminated",
+      "type": "table",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Percentage (%)"
+            },
+            "properties": [
+              { "id": "unit", "value": "percent" }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 8
+      },
+      "id": 4,
+      "options": {
+        "showHeader": true,
+        "footer": {
+          "show": false,
+          "reducer": ["sum"],
+          "fields": []
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "sum(karpenter_nodes_terminated_total{cluster=\"${cluster}\"})",
+          "legendFormat": "Total Nodes Terminated",
+          "format": "table",
+          "instant": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "100 * sum by (nodepool) (karpenter_nodes_terminated_total{cluster=\"${cluster}\"}) / sum(karpenter_nodes_terminated_total{cluster=\"${cluster}\"})",
+          "legendFormat": "{{nodepool}} - Percentage",
+          "format": "table",
+          "instant": true,
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "sum by (nodepool) (karpenter_nodes_terminated_total{cluster=\"${cluster}\"})",
+          "legendFormat": "{{nodepool}} - Nodes",
+          "format": "table",
+          "instant": true,
+          "refId": "C"
+        }
+      ]
+    },
+    {
+      "title": "Nodes Terminated Rate",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "Nodes/s",
+            "axisPlacement": "auto",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null }
+            ]
+          },
+          "unit": "ops"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 16
+      },
+      "id": 5,
+      "options": {
+        "legend": {
+          "calcs": ["lastNotNull"],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "rate(karpenter_nodes_terminated_total{cluster=\"${cluster}\"}[5m])",
+          "legendFormat": "{{nodepool}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Node Claim Disruption Rate",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "Disruptions/s",
+            "axisPlacement": "auto",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null }
+            ]
+          },
+          "unit": "ops"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 16
+      },
+      "id": 6,
+      "options": {
+        "legend": {
+          "calcs": ["lastNotNull"],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "rate(karpenter_nodeclaims_disrupted_total{cluster=\"${cluster}\"}[5m])",
+          "legendFormat": "{{nodepool}}",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "schemaVersion": 38,
+  "tags": ["karpenter", "aks", "kubernetes"],
+  "templating": {
+    "list": [
+      {
+        "current": {},
+        "hide": 0,
+        "includeAll": false,
+        "multi": false,
+        "name": "datasource",
+        "options": [],
+        "query": "prometheus",
+        "queryValue": "",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "type": "datasource"
+      },
+      {
+        "current": {},
+        "hide": 0,
+        "includeAll": false,
+        "multi": false,
+        "name": "cluster",
+        "options": [],
+        "query": "label_values(karpenter_pods_state{job=\"karpenter\"}, cluster)",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        }
+      }
+    ]
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timepicker": {
+    "refresh_intervals": ["5s", "10s", "30s", "1m", "5m", "15m", "30m", "1h"],
+    "time_options": ["5m", "15m", "1h", "6h", "12h", "24h", "2d", "7d", "30d"]
+  },
+  "timezone": "browser",
+  "title": "AKS Karpenter Spot Nodes Dashboard",
+  "uid": "aks-karpenter-dashboard",
+  "version": 2,
+  "weekStart": ""
+}
