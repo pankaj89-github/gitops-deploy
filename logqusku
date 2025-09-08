@@ -1,0 +1,8 @@
+KubeNodeInventory
+| where TimeGenerated > ago(1h)
+| where status == "Ready"
+| extend NodePool = tostring(Labels.agentpool), VM_SKU = tostring(Labels.node_kubernetes_io_instance_type)
+| where isnotempty(NodePool) and isnotempty(VM_SKU)
+| summarize NodeCount = count() by ClusterName, NodePool, VM_SKU
+| project ClusterName, NodePool, VM_SKU, NodeCount
+| order by ClusterName asc, NodePool asc, VM_SKU asc
