@@ -1,0 +1,140 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "AKS Node Pool SKU Distribution",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Node Pool SKU Distribution for $cluster",
+        "type": "table",
+        "datasource": {
+          "type": "grafana-azure-monitor-datasource",
+          "uid": "Azure_Monitor"
+        },
+        "targets": [
+          {
+            "azureLogAnalytics": {
+              "query": "KubeNodeInventory\n| where TimeGenerated > ago(1h)\n| where NodeStatus == \"Ready\"\n| where ClusterName == \"$cluster\"\n| extend NodePool = tostring(NodeLabels.karpenter_sh_nodepool)\n| where NodePool != \"\"\n| summarize NodeCount = count() by ClusterName, NodePool, NodeInstanceType\n| project ClusterName, NodePool, VM_SKU = NodeInstanceType, NodeCount",
+              "resultFormat": "table",
+              "workspace": "YOUR_LOG_ANALYTICS_WORKSPACE_ID"
+            },
+            "refId": "A"
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {
+                "ClusterName": true
+              },
+              "renameByName": {
+                "NodePool": "Node Pool",
+                "VM_SKU": "VM SKU",
+                "NodeCount": "Node Count"
+              }
+            }
+          }
+        ],
+        "options": {
+          "showHeader": true,
+          "sortBy": [
+            {
+              "desc": false,
+              "displayName": "Node Pool"
+            }
+          ],
+          "footer": {
+            "show": false
+          }
+        },
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "align": "left",
+              "displayMode": "auto",
+              "filterable": false
+            },
+            "thresholds": {
+              "mode": "absolute",
+              "steps": []
+            }
+          },
+          "overrides": [
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Node Pool"
+              },
+              "properties": [
+                {
+                  "id": "custom.filterable",
+                  "value": true
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "VM SKU"
+              },
+              "properties": [
+                {
+                  "id": "custom.filterable",
+                  "value": true
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Node Count"
+              },
+              "properties": [
+                {
+                  "id": "custom.align",
+                  "value": "right"
+                }
+              ]
+            }
+          ]
+        },
+        "repeat": "cluster",
+        "repeatDirection": "v",
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 0
+        }
+      }
+    ],
+    "schemaVersion": 38,
+    "templating": {
+      "list": [
+        {
+          "name": "cluster",
+          "type": "query",
+          "datasource": {
+            "type": "grafana-azure-monitor-datasource",
+            "uid": "Azure_Monitor"
+          },
+          "query": {
+            "azureLogAnalytics": {
+              "query": "KubeNodeInventory | summarize by ClusterName | project ClusterName",
+              "resultFormat": "table",
+              "workspace": "YOUR_LOG_ANALYTICS_WORKSPACE_ID"
+            }
+          },
+          "refresh": 1,
+          "multi": false,
+          "includeAll": false
+        }
+      ]
+    },
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    }
+  }
+}
