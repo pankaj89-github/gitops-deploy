@@ -208,7 +208,8 @@
           "refId": "B"
         },
         {
-          "expr": "rate(karpenter_voluntary_disruption_decisions_total{cluster=~\"$cluster\", nodepool!=\"\"}[5m]) by (cluster, nodepool)",
+          "expr": "rate(karpenter_voluntary_disruption_decisions_total{
+cluster=~\"$cluster\", nodepool!=\"\"}[5m]) by (cluster, nodepool)",
           "legendFormat": "{{cluster}} - {{nodepool}} - Disruption Decisions",
           "datasource": "${datasource}",
           "refId": "C"
@@ -235,6 +236,21 @@
       {
         "current": {},
         "hide": 0,
+        "includeAll": false,
+        "label": "Data Source",
+        "multi": false,
+        "name": "datasource",
+        "options": [],
+        "query": "prometheus",
+        "queryValue": "",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "type": "datasource"
+      },
+      {
+        "current": {},
+        "hide": 0,
         "includeAll": true,
         "label": "Cluster",
         "multi": false,
@@ -245,13 +261,14 @@
         "refresh": 1,
         "regex": "",
         "skipUrlSync": false,
-        "type": "query"
+        "type": "query",
+        "datasource": "${datasource}"
       }
     ]
   },
   "time": { "from": "now-6h", "to": "now" },
   "timepicker": {},
-  "timezone": "browser",
+  "timezone": "Asia/Kolkata",
   "title": "Karpenter Auto-Provisioning Dashboard for AKS",
   "uid": "karpenter-aks-autoprovisioning",
   "version": 1
