@@ -1,18 +1,16 @@
 KubeNodeInventory
 | where TimeGenerated > ago(10m)
 | where status == "Ready"
-| extend ParsedLabels = parse_json(Labels)
+| extend nodepoolType = todynamic(Labels)
+| where isnotnull(nodepoolType)
 | extend NodePool = coalesce(
-    tostring(ParsedLabels.agentpool),
-    tostring(ParsedLabels.kubernetes_azure_com_agentpool),
-    tostring(ParsedLabels["agentpool"]),
-    extract(@"agentpool=([^,\s]+)", 1, Labels)
+    tostring(nodepoolType.agentpool),
+    tostring(nodepoolType.kubernetes_azure_com_agentpool),
+    tostring(nodepoolType["agentpool"])
 ), VM_SKU = coalesce(
-    tostring(ParsedLabels.node_kubernetes_io_instance_type),
-    tostring(ParsedLabels["node.kubernetes.io/instance-type"]),
-    extract(@"node\.kubernetes\.io/instance-type=([^,\s]+)", 1, Labels)
+    tostring(nodepoolType.node_kubernetes_io_instance_type),
+    tostring(nodepoolType["node.kubernetes.io/instance-type"])
 )
 | where isnotempty(NodePool) and isnotempty(VM_SKU)
-| summarize NodeCount = count() by ClusterName, NodePool, VM_SKU
-| project ClusterName, NodePool, VM_SKU, NodeCount
+| summarize NodeCount = count(NodeName) by ClusterName, NodePool, VM_SKU
 | order by ClusterName asc, NodePool asc, VM_SKU asc
