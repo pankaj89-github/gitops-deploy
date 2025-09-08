@@ -1,0 +1,6 @@
+KubeNodeInventory
+| where TimeGenerated >= ago(5m)
+| extend aksnodeclass = tostring(parse_json(Labels)['karpenter.azure.com/aksnodeclass'])
+| summarize NAPStatus = iff(countif(isnotempty(aksnodeclass)) > 0, "Enabled", "Not Enabled") by ClusterName
+| project ClusterName, NAPStatus
+| order by ClusterName asc
