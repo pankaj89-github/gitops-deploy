@@ -1,0 +1,36 @@
+KubePodInventory
+| where TimeGenerated > ago(5m) // Check for activity in the last 5 minutes
+| summarize 
+    RecentRecordCount = count(), 
+    LatestTime = max(TimeGenerated), 
+    Nodes = dcount(Computer), 
+    RunningPods = sumif(1, PodStatus == "Running")
+    by ClusterName
+| project 
+    ClusterName, 
+    State = case(
+        RecentRecordCount > 0, "Up and Running",
+        "Stopped or Destroyed"
+    ),
+    CheckedTime = LatestTime,
+    Notes = iff(
+        RecentRecordCount == 0, 
+        "Verify cluster existence and state with: az aks show --name ClusterName --resource-group <RG> --query provisioningState or Resource Graph: Resources | where type == 'microsoft.containerservice/managedclusters' and name == ClusterName", 
+        "Cluster is active with recent pod activity"
+    )
+| union (
+    // Handle clusters with no recent data (potential Stopped/Destroyed)
+    KubePodInventory
+    | summarize by ClusterName
+    | join kind=leftanti (
+        KubePodInventory
+        | where TimeGenerated > ago(5m)
+        | summarize by ClusterName
+    ) on ClusterName
+    | project 
+        ClusterName, 
+        State = "Stopped or Destroyed", 
+        CheckedTime = now(), 
+        Notes = "No recent log data. Verify cluster existence and state with: az aks show --name ClusterName --resource-group <RG> --query provisioningState or Resource Graph: Resources | where type == 'microsoft.containerservice/managedclusters' and name == ClusterName"
+)
+| order by ClusterName asc
