@@ -1,0 +1,279 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "gnetId": null,
+  "graphTooltip": 0,
+  "links": [],
+  "panels": [
+    {
+      "title": "Karpenter Node Pools - Azure Auto-Provisioning Enabled",
+      "type": "table",
+      "targets": [
+        {
+          "expr": "sum by (cluster, nodepool) (karpenter_nodes_created_total{cluster=~\"$cluster\", nodepool!=\"\"}) > 0 or sum by (cluster) (karpenter_nodes_created_total{cluster=~\"$cluster\"}) > 0",
+          "legendFormat": "{{cluster}} - {{nodepool}}",
+          "datasource": { "uid": "${datasource}", "type": "prometheus" },
+          "refId": "A",
+          "instant": true
+        },
+        {
+          "expr": "sum by (cluster, nodepool) (karpenter_pods_state{cluster=~\"$cluster\", phase=\"Pending\", nodepool!=\"\"}) or sum by (cluster) (karpenter_pods_state{cluster=~\"$cluster\", phase=\"Pending\"})",
+          "legendFormat": "Pending Pods",
+          "datasource": { "uid": "${datasource}", "type": "prometheus" },
+          "refId": "B",
+          "instant": true
+        },
+        {
+          "expr": "sum by (cluster, nodepool) (karpenter_nodes_created_total{cluster=~\"$cluster\", nodepool!=\"\"}) - sum by (cluster, nodepool) (karpenter_nodes_terminated_total{cluster=~\"$cluster\", nodepool!=\"\"}) or sum by (cluster) (karpenter_nodes_created_total{cluster=~\"$cluster\"}) - sum by (cluster) (karpenter_nodes_terminated_total{cluster=~\"$cluster\"})",
+          "legendFormat": "Current Nodes",
+          "datasource": { "uid": "${datasource}", "type": "prometheus" },
+          "refId": "C",
+          "instant": true
+        },
+        {
+          "expr": "sum by (cluster, nodepool) (karpenter_nodeclaims_disrupted_total{cluster=~\"$cluster\", nodepool!=\"\"}) or sum by (cluster) (karpenter_nodeclaims_disrupted_total{cluster=~\"$cluster\"})",
+          "legendFormat": "Disrupted NodeClaims",
+          "datasource": { "uid": "${datasource}", "type": "prometheus" },
+          "refId": "D",
+          "instant": true
+        },
+        {
+          "expr": "sum by (cluster, nodepool) (karpenter_voluntary_disruption_eligible_nodes{cluster=~\"$cluster\", nodepool!=\"\"}) or sum by (cluster) (karpenter_voluntary_disruption_eligible_nodes{cluster=~\"$cluster\"})",
+          "legendFormat": "Eligible for Disruption",
+          "datasource": { "uid": "${datasource}", "type": "prometheus" },
+          "refId": "E",
+          "instant": true
+        },
+        {
+          "expr": "sum by (cluster, nodepool) (karpenter_voluntary_disruption_decisions_total{cluster=~\"$cluster\", nodepool!=\"\"}) or sum by (cluster) (karpenter_voluntary_disruption_decisions_total{cluster=~\"$cluster\"})",
+          "legendFormat": "Disruption Decisions",
+          "datasource": { "uid": "${datasource}", "type": "prometheus" },
+          "refId": "F",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "align": "auto", "displayMode": "auto" },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green" }, { "color": "red", "value": 10 }] }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Pending Pods" }, "properties": [{ "id": "thresholds", "value": { "steps": [{ "color": "red", "value": 10 }] } }] },
+          { "matcher": { "id": "byName", "options": "Disrupted NodeClaims" }, "properties": [{ "id": "thresholds", "value": { "steps": [{ "color": "red", "value": 10 }] } }] }
+        ]
+      },
+      "options": { "showHeader": true, "sortBy": [{ "desc": true, "displayName": "Current Nodes" }] },
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "indexByName": { "cluster": 0, "nodepool": 1, "Value #B": 2, "Value #C": 3, "Value #D": 4, "Value #E": 5, "Value #F": 6 },
+            "renameByName": {
+              "Value #B": "Pending Pods",
+              "Value #C": "Current Nodes",
+              "Value #D": "Disrupted NodeClaims",
+              "Value #E": "Eligible for Disruption",
+              "Value #F": "Disruption Decisions"
+            }
+          }
+        },
+        { "id": "filterByValue", "options": { "filters": [{ "fieldName": "Current Nodes", "config": { "id": "greaterOrEqual", "options": { "value": 0 } } }] } }
+      ],
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 0 },
+      "description": "Shows nodepool details like running nodes, waiting pods, and node removals. High waiting pods or frequent removals mean delays or instability, slowing apps. Helps fix Azure auto-scaling issues."
+    },
+    {
+      "title": "Pending Pods vs. Node Creation Rate",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum by (cluster, nodepool) (karpenter_pods_state{cluster=~\"$cluster\", phase=\"Pending\", nodepool!=\"\"}) or sum by (cluster) (karpenter_pods_state{cluster=~\"$cluster\", phase=\"Pending\"})",
+          "legendFormat": "{{cluster}} - {{nodepool}} - Pending Pods",
+          "datasource": { "uid": "${datasource}", "type": "prometheus" },
+          "refId": "A"
+        },
+        {
+          "expr": "sum by (cluster, nodepool) (rate(karpenter_nodes_created_total{cluster=~\"$cluster\", nodepool!=\"\"}[5m])) or sum by (cluster) (rate(karpenter_nodes_created_total{cluster=~\"$cluster\"}[5m]))",
+          "legendFormat": "{{cluster}} - {{nodepool}} - Creation Rate",
+          "datasource": { "uid": "${datasource}", "type": "prometheus" },
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "drawStyle": "lines", "fillOpacity": 10 },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green" }, { "color": "red", "value": 10 }] }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Pending Pods" }, "properties": [{ "id": "unit", "value": "none" }] },
+          { "matcher": { "id": "byName", "options": "Creation Rate" }, "properties": [{ "id": "unit", "value": "nodes/s" }, { "id": "custom.axisPlacement", "value": "right" }] }
+        ]
+      },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 8 },
+      "description": "Shows pods waiting for nodes vs. how fast nodes are added. Many waiting pods with slow node creation means Azure auto-scaling is slow, delaying apps. Check to fix resource or setting issues."
+    },
+    {
+      "title": "Node Creation vs. Termination Rate",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum by (cluster, nodepool) (rate(karpenter_nodes_created_total{cluster=~\"$cluster\", nodepool!=\"\"}[5m])) or sum by (cluster) (rate(karpenter_nodes_created_total{cluster=~\"$cluster\"}[5m]))",
+          "legendFormat": "{{cluster}} - {{nodepool}} - Creation Rate",
+          "datasource": { "uid": "${datasource}", "type": "prometheus" },
+          "refId": "A"
+        },
+        {
+          "expr": "sum by (cluster, nodepool) (rate(karpenter_nodes_terminated_total{cluster=~\"$cluster\", nodepool!=\"\"}[5m])) or sum by (cluster) (rate(karpenter_nodes_terminated_total{cluster=~\"$cluster\"}[5m]))",
+          "legendFormat": "{{cluster}} - {{nodepool}} - Termination Rate",
+          "datasource": { "uid": "${datasource}", "type": "prometheus" },
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "drawStyle": "lines", "fillOpacity": 10 },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green" }, { "color": "red", "value": 0.1 }] },
+          "unit": "nodes/s"
+        }
+      },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 16 },
+      "description": "Tracks how often nodes are added or removed. Frequent removals matching additions suggest instability, disrupting apps. Use to fix overly aggressive Azure scaling or resource issues."
+    },
+    {
+      "title": "Nodes Pending Disruption Due to PDB",
+      "type": "table",
+      "targets": [
+        {
+          "expr": "sum by (cluster, nodepool) (karpenter_voluntary_disruption_eligible_nodes{cluster=~\"$cluster\", nodepool!=\"\"}) unless sum by (cluster, nodepool) (increase(karpenter_voluntary_disruption_decisions_total{cluster=~\"$cluster\", nodepool!=\"\"}[5m])) > 0 or sum by (cluster) (karpenter_voluntary_disruption_eligible_nodes{cluster=~\"$cluster\"}) unless sum by (cluster) (increase(karpenter_voluntary_disruption_decisions_total{cluster=~\"$cluster\"}[5m])) > 0",
+          "legendFormat": "{{cluster}} - {{nodepool}} - Eligible Nodes",
+          "datasource": { "uid": "${datasource}", "type": "prometheus" },
+          "refId": "A",
+          "instant": true
+        },
+        {
+          "expr": "sum by (cluster, nodepool) (karpenter_pods_state{cluster=~\"$cluster\", phase=\"Pending\", nodepool!=\"\"}) or sum by (cluster) (karpenter_pods_state{cluster=~\"$cluster\", phase=\"Pending\"})",
+          "legendFormat": "{{cluster}} - {{nodepool}} - Pending Pods",
+          "datasource": { "uid": "${datasource}", "type": "prometheus" },
+          "refId": "B",
+          "instant": true
+        },
+        {
+          "expr": "sum by (cluster, nodepool) (increase(karpenter_nodeclaims_disrupted_total{cluster=~\"$cluster\", nodepool!=\"\"}[5m])) or sum by (cluster) (increase(karpenter_nodeclaims_disrupted_total{cluster=~\"$cluster\"}[5m]))",
+          "legendFormat": "{{cluster}} - {{nodepool}} - Disruptions Completed",
+          "datasource": { "uid": "${datasource}", "type": "prometheus" },
+          "refId": "C",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "align": "auto", "displayMode": "auto" },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green" }, { "color": "red", "value": 1 }] }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Eligible Nodes" }, "properties": [{ "id": "thresholds", "value": { "steps": [{ "color": "red", "value": 1 }] } }] },
+          { "matcher": { "id": "byName", "options": "Pending Pods" }, "properties": [{ "id": "thresholds", "value": { "steps": [{ "color": "red", "value": 10 }] } }] }
+        ]
+      },
+      "options": { "showHeader": true, "sortBy": [{ "desc": true, "displayName": "Eligible Nodes" }] },
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "indexByName": { "cluster": 0, "nodepool": 1, "Value #A": 2, "Value #B": 3, "Value #C": 4 },
+            "renameByName": {
+              "Value #A": "Eligible Nodes",
+              "Value #B": "Pending Pods",
+              "Value #C": "Disruptions (5m)"
+            }
+          }
+        },
+        { "id": "filterByValue", "options": { "filters": [{ "fieldName": "Eligible Nodes", "config": { "id": "greater", "options": { "value": 0 } } }] } }
+      ],
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 24 },
+      "description": "Shows nodes ready for removal but blocked by app protection rules, delaying scaling. High waiting pods suggest slowdowns. Adjust rules to improve Azure scaling efficiency."
+    },
+    {
+      "title": "Karpenter Disruption Activity Trends",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum by (cluster, nodepool, reason) (rate(karpenter_nodeclaims_disrupted_total{cluster=~\"$cluster\", nodepool!=\"\", reason!~\"\"}[5m])) or sum by (cluster, reason) (rate(karpenter_nodeclaims_disrupted_total{cluster=~\"$cluster\", reason!~\"\"}[5m]))",
+          "legendFormat": "{{cluster}} - {{nodepool}} - Disruption ({{reason}})",
+          "datasource": { "uid": "${datasource}", "type": "prometheus" },
+          "refId": "A"
+        },
+        {
+          "expr": "sum by (cluster, nodepool) (karpenter_voluntary_disruption_eligible_nodes{cluster=~\"$cluster\", nodepool!=\"\"}) or sum by (cluster) (karpenter_voluntary_disruption_eligible_nodes{cluster=~\"$cluster\"})",
+          "legendFormat": "{{cluster}} - {{nodepool}} - Eligible Nodes",
+          "datasource": { "uid": "${datasource}", "type": "prometheus" },
+          "refId": "B"
+        },
+        {
+          "expr": "sum by (cluster, nodepool) (rate(karpenter_voluntary_disruption_decisions_total{cluster=~\"$cluster\", nodepool!=\"\"}[5m])) or sum by (cluster) (rate(karpenter_voluntary_disruption_decisions_total{cluster=~\"$cluster\"}[5m]))",
+          "legendFormat": "{{cluster}} - {{nodepool}} - Disruption Decisions",
+          "datasource": { "uid": "${datasource}", "type": "prometheus" },
+          "refId": "C"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "drawStyle": "lines", "fillOpacity": 10 },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green" }, { "color": "red", "value": 0.1 }] }
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Eligible Nodes" }, "properties": [{ "id": "unit", "value": "none" }, { "id": "custom.axisPlacement", "value": "left" }] },
+          { "matcher": { "id": "byRegexp", "options": "Disruption.*" }, "properties": [{ "id": "unit", "value": "ops/s" }, { "id": "custom.axisPlacement", "value": "right" }] }
+        ]
+      },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 32 },
+      "description": "Tracks node removals and nodes marked for removal. Frequent or stuck removals suggest scaling issues, disrupting apps. Fix Azure settings for smooth performance."
+    }
+  ],
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["karpenter", "aks", "auto-provisioning"],
+  "templating": {
+    "list": [
+      {
+        "current": {},
+        "hide": 0,
+        "includeAll": false,
+        "label": "Data Source",
+        "multi": false,
+        "name": "datasource",
+        "options": [],
+        "query": "prometheus",
+        "queryValue": "",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "type": "datasource"
+      },
+      {
+        "current": {},
+        "hide": 0,
+        "includeAll": true,
+        "label": "Cluster",
+        "multi": false,
+        "name": "cluster",
+        "options": [],
+        "query": "label_values(karpenter_nodes_created_total, cluster)",
+        "queryValue": "",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "type": "query",
+        "datasource": { "uid": "${datasource}", "type": "prometheus" }
+      }
+    ]
+  },
+  "time": { "from": "now-6h", "to": "now" },
+  "timepicker": {},
+  "timezone": "Asia/Kolkata",
+  "title": "Karpenter Auto-Provisioning Dashboard for AKS",
+  "uid": "karpenter-aks-autoprovisioning",
+  "version": 1
+}
