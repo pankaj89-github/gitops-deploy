@@ -1,0 +1,343 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": "-- Grafana --",
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "gnetId": null,
+  "graphTooltip": 0,
+  "links": [],
+  "panels": [
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "description": "Shows the state of pods managed by Karpenter (e.g., Pending, Running, Terminated). **Implication**: High counts of Pending or Terminated pods indicate provisioning delays or failures, critical for SEV 1 incidents. Helps identify if NAP is failing to schedule pods due to resource constraints or misconfiguration.",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 80 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "id": 1,
+      "options": {
+        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "single" }
+      },
+      "targets": [
+        {
+          "expr": "sum by (cluster, nodepool, state) (karpenter_pods_state{cluster=\"$cluster\", nodepool=~\".+\"})",
+          "format": "time_series",
+          "legendFormat": "{{cluster}} - {{nodepool}} - {{state}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Karpenter Pods State",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "description": "Total number of nodes created by Karpenter. **Implication**: A low or stagnant count during a SEV 1 incident may indicate provisioning failures (e.g., insufficient capacity, Azure quota issues, or NAP misconfiguration). Helps verify if Karpenter is scaling nodes as expected.",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "id": 2,
+      "options": {
+        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "single" }
+      },
+      "targets": [
+        {
+          "expr": "sum by (cluster, nodepool) (karpenter_nodes_created_total{cluster=\"$cluster\", nodepool=~\".+\"})",
+          "format": "time_series",
+          "legendFormat": "{{cluster}} - {{nodepool}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Karpenter Nodes Created Total",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "description": "Total number of nodes terminated by Karpenter, broken down by termination reason (e.g., Consolidation, Drift, Expiration). **Implication**: High termination rates, especially for Consolidation or Drift, may indicate aggressive deprovisioning or configuration drift, causing pod evictions and SEV 1 incidents. Helps diagnose if NAP is prematurely terminating nodes.",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 10 }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "id": 3,
+      "options": {
+        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "single" }
+      },
+      "targets": [
+        {
+          "expr": "sum by (cluster, namespace, reason) (karpenter_nodes_terminated_total{cluster=\"$cluster\"})",
+          "format": "time_series",
+          "legendFormat": "{{cluster}} - {{namespace}} - {{reason}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Karpenter Nodes Terminated Total (by Reason)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "description": "Total number of node claims disrupted by Karpenter. **Implication**: Frequent disruptions may lead to pod evictions, impacting workload reliability and causing SEV 1 incidents. Helps identify if NAP’s consolidation is overly aggressive.",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 5 }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "id": 4,
+      "options": {
+        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "single" }
+      },
+      "targets": [
+        {
+          "expr": "sum by (cluster, nodepool) (karpenter_nodeclaims_disrupted_total{cluster=\"$cluster\", nodepool=~\".+\"})",
+          "format": "time_series",
+          "legendFormat": "{{cluster}} - {{nodepool}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Karpenter Node Claims Disrupted Total",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "description": "Number of nodes created by Karpenter per node pool. **Implication**: A low or zero node count in critical node pools during a SEV 1 incident indicates provisioning failures or misconfigured node pools, potentially due to Azure quotas or NAP settings. Helps diagnose if specific node pools are failing to scale.",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 0 }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "id": 5,
+      "options": {
+        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "single" }
+      },
+      "targets": [
+        {
+          "expr": "sum by (cluster, nodepool) (karpenter_nodes_created_total{cluster=\"$cluster\", nodepool=~\".+\"})",
+          "format": "time_series",
+          "legendFormat": "{{cluster}} - {{nodepool}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Karpenter Node Pool Nodes",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "description": "Total number of voluntary disruption decisions made by Karpenter. **Implication**: High decision counts indicate frequent node consolidation, which could disrupt workloads and cause SEV 1 incidents. Helps pinpoint if NAP’s cost optimization is overly aggressive.",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 5 }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "id": 6,
+      "options": {
+        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "single" }
+      },
+      "targets": [
+        {
+          "expr": "sum by (cluster, nodepool) (karpenter_voluntary_disruption_decisions_total{cluster=\"$cluster\", nodepool=~\".+\"})",
+          "format": "time_series",
+          "legendFormat": "{{cluster}} - {{nodepool}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Karpenter Voluntary Disruption Decisions Total",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "description": "Number of nodes eligible for voluntary disruption by Karpenter, categorized as Underutilized, Drifted, or Empty. **Implication**: A high count may indicate nodes are candidates for consolidation but could be blocked by constraints like PDBs, causing resource shortages. For PDB-specific issues, check Karpenter logs with `kubectl logs -n karpenter | grep -i 'PodDisruptionBudget'`. Helps diagnose SEV 1 incidents related to NAP’s inability to optimize resources.",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 1 },
+              { "color": "red", "value": 5 }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
+      "id": 7,
+      "options": {
+        "legend": { "calcs": [], "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "single" }
+      },
+      "targets": [
+        {
+          "expr": "sum by (cluster, nodepool, reason) (karpenter_voluntary_disruption_eligible_nodes{cluster=\"$cluster\", nodepool=~\".+\", reason=~\"Underutilized|Drifted|Empty\"})",
+          "format": "time_series",
+          "legendFormat": "{{cluster}} - {{nodepool}} - {{reason}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Karpenter Nodes Eligible for Disruption (by Reason)",
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["karpenter", "aks", "node-provisioning"],
+  "templating": {
+    "list": [
+      {
+        "current": {},
+        "datasource": {
+          "type": "prometheus",
+          "uid": "__default"
+        },
+        "hide": 0,
+        "includeAll": false,
+        "label": "Data Source",
+        "multi": false,
+        "name": "datasource",
+        "options": [],
+        "query": "prometheus",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "type": "datasource"
+      },
+      {
+        "current": {},
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "hide": 0,
+        "includeAll": false,
+        "label": "Cluster",
+        "multi": false,
+        "name": "cluster",
+        "options": [],
+        "query": "label_values(karpenter_pods_state, cluster)",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "type": "query"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "timepicker": {
+    "refresh_intervals": ["5s", "10s", "30s", "1m", "5m", "15m", "30m", "1h"],
+    "time_options": ["5m", "15m", "1h", "6h", "12h", "24h", "2d", "7d", "30d"]
+  },
+  "timezone": "",
+  "title": "Karpenter Node Provisioning Dashboard",
+  "uid": "karpenter-node-provisioning",
+  "version": 8,
+  "weekStart": ""
+}
