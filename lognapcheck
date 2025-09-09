@@ -1,0 +1,50 @@
+let TimeWindow = ago(5m);
+// Cache recent pod activity data
+let RecentPods = materialize(
+    KubePodInventory
+    | where TimeGenerated > TimeWindow
+    | summarize 
+        RecordCount = count(),
+        LatestTime = max(TimeGenerated),
+        NodeCount = dcount(Computer),
+        RunningPods = sumif(1, PodStatus == "Running")
+        by ClusterName
+);
+// Cache all clusters from KubePodInventory
+let AllClusters = materialize(
+    KubePodInventory
+    | summarize by ClusterName
+);
+// Cache existing clusters from Resources table
+let ExistingClusters = materialize(
+    Resources
+    | where type == "microsoft.containerservice/managedclusters"
+    | project ClusterName = name
+);
+// Active clusters (Up and Running)
+let ActiveClusters = 
+RecentPods
+| project
+    ClusterName,
+    State = "Up and Running",
+    CheckedTime = LatestTime,
+    Notes = "Cluster is active with recent pod activity";
+// Inactive clusters (Stopped or Does Not Exist)
+let InactiveClusters = 
+AllClusters
+| join kind=leftanti RecentPods on ClusterName
+| join kind=leftouter ExistingClusters on ClusterName
+| project
+    ClusterName,
+    State = iff(isnull(ClusterName1), "Does Not Exist", "Stopped"),
+    CheckedTime = now(),
+    Notes = iff(
+        isnull(ClusterName1),
+        "Cluster not found in Azure resources. Likely deleted.",
+        "No recent log data but cluster exists. Verify state with: az aks show --name ClusterName --resource-group <RG> --query provisioningState"
+    );
+// Combine results
+ActiveClusters
+| union InactiveClusters
+| project ClusterName, State, CheckedTime
+| order by ClusterName asc
