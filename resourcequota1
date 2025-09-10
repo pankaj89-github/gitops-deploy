@@ -1,0 +1,39 @@
+let AKSClusters = Resources
+| where type == "microsoft.containerservice/managedclusters"
+| where properties.nodeProvisioningMode == "Auto"
+| project ClusterName = name, subscriptionId, location, EnvironmentTag = tags.Environment;
+QuotaResources
+| where type =~ 'microsoft.compute/locations/usages'
+| where isnotempty(properties)
+| mv-expand propertyJson = properties.value
+| extend 
+    usage = toint(propertyJson.currentValue),
+    quota = toint(propertyJson.['limit']),
+    quotaLocalizedName = tostring(propertyJson.['name'].localizedValue),
+    quotaName = tostring(propertyJson.['name'].value),
+    usagePercent = todouble(propertyJson.currentValue) / todouble(propertyJson.['limit']) * 100.0,
+    status = case(
+        todouble(propertyJson.currentValue) / todouble(propertyJson.['limit']) * 100.0 > 80, "Critical",
+        todouble(propertyJson.currentValue) / todouble(propertyJson.['limit']) * 100.0 > 60, "Warning",
+        "Safe"
+    )
+| join kind=leftouter (
+    ResourceContainers 
+    | where type == 'microsoft.resources/subscriptions' 
+    | project subscriptionName = name, subscriptionId
+) on subscriptionId
+| join kind=leftouter AKSClusters on subscriptionId, location
+| project 
+    subscriptionId,
+    subscriptionName,
+    location,
+    quotaName,
+    quotaLocalizedName,
+    usage,
+    quota,
+    usagePercent,
+    status,
+    ClusterName,
+    EnvironmentTag
+| where usagePercent > 0
+| order by usagePercent desc
