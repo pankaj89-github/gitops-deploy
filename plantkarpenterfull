@@ -1,0 +1,34 @@
+@startuml
+actor "Karpenter" as Karpenter
+participant "AKS Cluster" as Cluster
+participant "Pod Disruption Budgets" as PDB
+
+== Node Creation Workflow ==
+Karpenter -> Cluster: Detect unscheduled pods
+Cluster --> Karpenter: Return list of pending pods
+Karpenter -> Cluster: Determine node requirements
+Karpenter -> Cluster: Provision new node
+Cluster --> Karpenter: Confirm node creation
+Karpenter -> Cluster: Schedule pods on new node
+Cluster --> Karpenter: Confirm pods scheduled
+
+== Node Disruption Workflow ==
+Karpenter -> Cluster: Detect nodes for optimization (underutilized, drifted, empty)
+Cluster --> Karpenter: Return list of candidate nodes
+Karpenter -> Cluster: Plan node disruption (evict pods, replace node)
+Cluster --> Karpenter: Confirm disruption plan
+Karpenter -> PDB: Verify pod eviction allowed
+alt PDB allows eviction
+    PDB --> Karpenter: Eviction approved
+else PDB blocks eviction
+    PDB --> Karpenter: Eviction blocked
+    Karpenter -> Cluster: Log blockage
+    Cluster --> Karpenter: Return log details
+    Karpenter -> PDB: Adjust PDB settings
+end alt
+Karpenter -> Cluster: Evict pods and disrupt node
+Cluster --> Karpenter: Confirm disruption complete
+Karpenter -> Cluster: Shut down node
+Cluster --> Karpenter: Confirm node termination
+
+@enduml
