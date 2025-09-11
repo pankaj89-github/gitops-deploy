@@ -1,0 +1,32 @@
+@startuml
+actor "Karpenter" as Karpenter
+participant "AKS Cluster" as Cluster
+participant "Pod Disruption Budgets" as PDB
+
+== Identify Nodes for Disruption ==
+Karpenter -> Cluster: Detect nodes for optimization (underutilized, drifted, empty)
+Cluster --> Karpenter: Return list of candidate nodes
+
+== Decide to Disrupt ==
+Karpenter -> Cluster: Plan node disruption (evict pods, replace node)
+Cluster --> Karpenter: Confirm disruption plan
+
+== Check PDB Constraints ==
+Karpenter -> PDB: Verify pod eviction allowed
+alt PDB allows eviction
+    PDB --> Karpenter: Eviction approved
+else PDB blocks eviction
+    PDB --> Karpenter: Eviction blocked
+    Karpenter -> Cluster: Log blockage
+    Cluster --> Karpenter: Return log details
+    Karpenter -> PDB: Adjust PDB settings
+end alt
+
+== Execute Disruption ==
+Karpenter -> Cluster: Evict pods and disrupt node
+Cluster --> Karpenter: Confirm disruption complete
+
+== Terminate Node ==
+Karpenter -> Cluster: Shut down node
+Cluster --> Karpenter: Confirm node termination
+@enduml
