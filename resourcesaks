@@ -1,0 +1,12 @@
+Resources
+| where type == 'microsoft.containerservice/managedclusters'
+| where subscriptionId in ($subscriptions)
+| project 
+    name,
+    subscriptionId,
+    resourceGroup,
+    location,
+    properties.kubernetesVersion,
+    properties.nodeResourceGroup,
+    properties.provisioningState
+| order by subscriptionId, resourceGroup, name
