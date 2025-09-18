@@ -1,12 +1,16 @@
 Resources
 | where type == 'microsoft.containerservice/managedclusters'
-| where subscriptionId in ($subscriptions)
+| join kind=leftouter (
+    ResourceContainers
+    | where type == 'microsoft.resources/subscriptions'
+    | project subscriptionId, subscriptionName = name
+) on subscriptionId
 | project 
     name,
-    subscriptionId,
+    subscriptionName,
     resourceGroup,
     location,
     properties.kubernetesVersion,
     properties.nodeResourceGroup,
     properties.provisioningState
-| order by subscriptionId, resourceGroup, name
+| order by subscriptionName, resourceGroup, name
