@@ -1,0 +1,323 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "Flux Sync Status Across AKS Clusters",
+    "tags": ["flux", "aks", "gitops"],
+    "style": "dark",
+    "timezone": "browser",
+    "editable": true,
+    "panels": [
+      {
+        "id": 1,
+        "title": "Kustomization Sync Status",
+        "type": "row",
+        "repeat": "cluster",
+        "repeatDirection": "v",
+        "collapsed": false,
+        "panels": [
+          {
+            "id": 2,
+            "title": "Ready Kustomizations ($cluster)",
+            "type": "stat",
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_AZURE_MONITOR}"
+            },
+            "targets": [
+              {
+                "expr": "sum(gotk_resource_info{job=\"kube-state-metrics\", kind=\"Kustomization\", ready=\"True\", instance=~\"$cluster\"})",
+                "format": "time_series",
+                "instant": true
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": { "mode": "thresholds" },
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    { "color": "green", "value": null },
+                    { "color": "red", "value": 0 }
+                  ]
+                }
+              }
+            },
+            "gridPos": { "h": 8, "w": 6, "x": 0, "y": 0 }
+          },
+          {
+            "id": 3,
+            "title": "Failed/Stalled Kustomizations ($cluster)",
+            "type": "stat",
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_AZURE_MONITOR}"
+            },
+            "targets": [
+              {
+                "expr": "sum(gotk_resource_info{job=\"kube-state-metrics\", kind=\"Kustomization\", ready=\"False\", instance=~\"$cluster\"} or gotk_resource_info{job=\"kube-state-metrics\", kind=\"Kustomization\", stalled=\"True\", instance=~\"$cluster\"})",
+                "format": "time_series",
+                "instant": true
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": { "mode": "thresholds" },
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    { "color": "red", "value": null }
+                  ]
+                }
+              }
+            },
+            "gridPos": { "h": 8, "w": 6, "x": 6, "y": 0 }
+          },
+          {
+            "id": 4,
+            "title": "Kustomization Sync Health % ($cluster)",
+            "type": "gauge",
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_AZURE_MONITOR}"
+            },
+            "targets": [
+              {
+                "expr": "sum(gotk_resource_info{job=\"kube-state-metrics\", kind=\"Kustomization\", ready=\"True\", instance=~\"$cluster\"}) / sum(gotk_resource_info{job=\"kube-state-metrics\", kind=\"Kustomization\", instance=~\"$cluster\"}) * 100",
+                "format": "time_series",
+                "instant": true
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "min": 0,
+                "max": 100,
+                "unit": "percent",
+                "color": { "mode": "thresholds" },
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    { "color": "red", "value": null },
+                    { "color": "yellow", "value": 80 },
+                    { "color": "green", "value": 90 }
+                  ]
+                }
+              }
+            },
+            "gridPos": { "h": 8, "w": 6, "x": 12, "y": 0 }
+          },
+          {
+            "id": 5,
+            "title": "Kustomization Details ($cluster)",
+            "type": "table",
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_AZURE_MONITOR}"
+            },
+            "targets": [
+              {
+                "expr": "sum by (instance, exported_namespace, name) (gotk_resource_info{job=\"kube-state-metrics\", kind=\"Kustomization\", instance=~\"$cluster\"})",
+                "format": "table",
+                "instant": true
+              }
+            ],
+            "transformations": [
+              {
+                "id": "organize",
+                "options": {
+                  "excludeByName": { "Time": true },
+                  "indexByName": { "instance": 0, "exported_namespace": 1, "name": 2, "Value": 3 }
+                }
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "custom": { "align": "left" },
+                "mappings": [
+                  { "options": { "1": { "text": "Ready" }, "0": { "text": "Not Ready" } }, "type": "value" }
+                ]
+              }
+            },
+            "gridPos": { "h": 10, "w": 24, "x": 0, "y": 8 }
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "title": "HelmRelease Sync Status",
+        "type": "row",
+        "repeat": "cluster",
+        "repeatDirection": "v",
+        "collapsed": false,
+        "panels": [
+          {
+            "id": 7,
+            "title": "Ready HelmReleases ($cluster)",
+            "type": "stat",
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_AZURE_MONITOR}"
+            },
+            "targets": [
+              {
+                "expr": "sum(gotk_resource_info{job=\"kube-state-metrics\", kind=\"HelmRelease\", ready=\"True\", instance=~\"$cluster\"})",
+                "format": "time_series",
+                "instant": true
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": { "mode": "thresholds" },
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    { "color": "green", "value": null },
+                    { "color": "red", "value": 0 }
+                  ]
+                }
+              }
+            },
+            "gridPos": { "h": 8, "w": 6, "x": 0, "y": 0 }
+          },
+          {
+            "id": 8,
+            "title": "Failed/Stalled HelmReleases ($cluster)",
+            "type": "stat",
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_AZURE_MONITOR}"
+            },
+            "targets": [
+              {
+                "expr": "sum(gotk_resource_info{job=\"kube-state-metrics\", kind=\"HelmRelease\", ready=\"False\", instance=~\"$cluster\"} or gotk_resource_info{job=\"kube-state-metrics\", kind=\"HelmRelease\", stalled=\"True\", instance=~\"$cluster\"})",
+                "format": "time_series",
+                "instant": true
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": { "mode": "thresholds" },
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    { "color": "red", "value": null }
+                  ]
+                }
+              }
+            },
+            "gridPos": { "h": 8, "w": 6, "x": 6, "y": 0 }
+          },
+          {
+            "id": 9,
+            "title": "HelmRelease Sync Health % ($cluster)",
+            "type": "gauge",
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_AZURE_MONITOR}"
+            },
+            "targets": [
+              {
+                "expr": "sum(gotk_resource_info{job=\"kube-state-metrics\", kind=\"HelmRelease\", ready=\"True\", instance=~\"$cluster\"}) / sum(gotk_resource_info{job=\"kube-state-metrics\", kind=\"HelmRelease\", instance=~\"$cluster\"}) * 100",
+                "format": "time_series",
+                "instant": true
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "min": 0,
+                "max": 100,
+                "unit": "percent",
+                "color": { "mode": "thresholds" },
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    { "color": "red", "value": null },
+                    { "color": "yellow", "value": 80 },
+                    { "color": "green", "value": 90 }
+                  ]
+                }
+              }
+            },
+            "gridPos": { "h": 8, "w": 6, "x": 12, "y": 0 }
+          },
+          {
+            "id": 10,
+            "title": "HelmRelease Details ($cluster)",
+            "type": "table",
+            "datasource": {
+              "type": "prometheus",
+              "uid": "${DS_AZURE_MONITOR}"
+            },
+            "targets": [
+              {
+                "expr": "sum by (instance, exported_namespace, name) (gotk_resource_info{job=\"kube-state-metrics\", kind=\"HelmRelease\", instance=~\"$cluster\"})",
+                "format": "table",
+                "instant": true
+              }
+            ],
+            "transformations": [
+              {
+                "id": "organize",
+                "options": {
+                  "excludeByName": { "Time": true },
+                  "indexByName": { "instance": 0, "exported_namespace": 1, "name": 2, "Value": 3 }
+                }
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "custom": { "align": "left" },
+                "mappings": [
+                  { "options": { "1": { "text": "Ready" }, "0": { "text": "Not Ready" } }, "type": "value" }
+                ]
+              }
+            },
+            "gridPos": { "h": 10, "w": 24, "x": 0, "y": 8 }
+          }
+        ]
+      }
+    ],
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "timepicker": {
+      "refresh_intervals": ["30s", "1m", "5m"],
+      "time_options": ["5m", "15m", "1h", "6h", "12h", "24h"]
+    },
+    "templating": {
+      "list": [
+        {
+          "name": "DS_AZURE_MONITOR",
+          "type": "datasource",
+          "query": "prometheus",
+          "current": { "selected": true, "text": "Azure Monitor", "value": "Azure Monitor" },
+          "hide": 0,
+          "label": "Data Source",
+          "options": [],
+          "refresh": 1
+        },
+        {
+          "name": "cluster",
+          "type": "query",
+          "datasource": { "type": "prometheus", "uid": "${DS_AZURE_MONITOR}" },
+          "query": {
+            "query": "label_values(gotk_resource_info{job=\"kube-state-metrics\"}, instance)",
+            "refId": "StandardVariableQuery"
+          },
+          "current": {},
+          "hide": 0,
+          "includeAll": true,
+          "multi": true,
+          "label": "Cluster",
+          "options": [],
+          "refresh": 1,
+          "regex": "",
+          "sort": 1
+        }
+      ]
+    },
+    "schemaVersion": 39,
+    "version": 1
+  },
+  "overwrite": false
+}
