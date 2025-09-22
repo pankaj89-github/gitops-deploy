@@ -1,16 +1,21 @@
 Resources
-| where type == 'microsoft.containerservice/managedclusters'
-| join kind=leftouter (
-    ResourceContainers
-    | where type == 'microsoft.resources/subscriptions'
-    | project subscriptionId, subscriptionName = name
-) on subscriptionId
-| project 
-    name,
-    subscriptionName,
-    resourceGroup,
-    location,
-    properties.kubernetesVersion,
-    properties.nodeResourceGroup,
-    properties.provisioningState
-| order by subscriptionName, resourceGroup, name
+| where type == "microsoft.containerservice/managedclusters"
+| extend agentPoolExists = isnotempty(properties.agentPoolProfiles),
+         cmkEnabled = case(
+             isnotempty(properties.agentPoolProfiles), 
+             array_length(properties.agentPoolProfiles) > 0 and any(properties.agentPoolProfiles, ap, isnotempty(ap.osDisk.diskEncryptionSet)),
+             isnotempty(properties.diskEncryptionSetId) or toboolean(properties.enableDiskEncryption),
+             false),
+         mmkEnabled = case(
+             isnotempty(properties.agentPoolProfiles), 
+             array_length(properties.agentPoolProfiles) > 0 and any(properties.agentPoolProfiles, ap, isempty(ap.osDisk.diskEncryptionSet)),
+             isempty(properties.diskEncryptionSetId) and not(toboolean(properties.enableDiskEncryption)),
+             true)
+| project subscriptionId, 
+         resourceGroup, 
+         aksName = name, 
+         location, 
+         cmkEnabled = iff(cmkEnabled, "Enabled", "Disabled"),
+         mmkEnabled = iff(mmkEnabled, "Enabled", "Disabled"),
+         agentPoolExists = iff(agentPoolExists, "Yes", "No"),
+         provisioningState = tostring(properties.provisioningState)
