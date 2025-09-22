@@ -1,0 +1,12 @@
+Resources
+| where type == "microsoft.containerservice/managedclusters"
+| mv-expand agentPoolProfiles = properties.agentPoolProfiles
+| extend cmkEnabled = isnotempty(agentPoolProfiles.osDisk.diskEncryptionSet),
+         mmkEnabled = isempty(agentPoolProfiles.osDisk.diskEncryptionSet) or agentPoolProfiles.osDisk.diskEncryptionSet == null
+| summarize 
+    cmkEnabled = max(todynamic(cmkEnabled)),
+    mmkEnabled = max(todynamic(mmkEnabled))
+    by subscriptionId, resourceGroup, aksName = name, location
+| project subscriptionId, resourceGroup, aksName, location, 
+          cmkEnabled = iff(cmkEnabled, "Enabled", "Disabled"),
+          mmkEnabled = iff(mmkEnabled, "Enabled", "Disabled")
