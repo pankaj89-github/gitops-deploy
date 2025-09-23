@@ -1,0 +1,20 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: restrict-istio-injection-enabled-deployment
+spec:
+  validationFailureAction: Enforce  # Deny on violation; use 'Audit' for logging only
+  background: true  # Evaluate on updates
+  rules:
+  - name: deny-istio-injection-enabled
+    match:
+      any:
+      - resources:
+          kinds:
+          - Deployment
+    validate:
+      message: "Deployment label 'istio-injection=enabled' is not allowed. The label must either be absent or set to a value other than 'enabled'. Use namespace-level 'istio.io/rev=<revision>' for AKS Istio add-on injection."
+      foreach:
+      - list: "request.object.metadata.labels"
+        deny:
+          condition: "{{ element.key == 'istio-injection' && element.value == 'enabled' }}"
