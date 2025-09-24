@@ -1,0 +1,10 @@
+authorizationresources
+| where type =~ "microsoft.authorization/roleassignments"
+| extend subscriptionId = split(scope, "/")[2]
+| join kind=inner (
+    resourcecontainers
+    | where type =~ "microsoft.resources/subscriptions"
+    | project subscriptionId, subscriptionName = name, region = location
+) on subscriptionId
+| summarize roleAssignmentCount = count() by subscriptionId, subscriptionName, region
+| order by roleAssignmentCount desc
