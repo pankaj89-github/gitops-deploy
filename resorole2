@@ -1,0 +1,23 @@
+// Step 1: Get subscriptions and AKS clusters from Resources table
+let subscriptions = Resources
+    | where type == 'microsoft.resources/subscriptions'
+    | project subscriptionId = id, subscriptionName = name;
+let aksClusters = Resources
+    | where type == 'microsoft.containerservice/managedclusters'
+    | project subscriptionId = subscription.id, aksClusterName = name, location, resourceGroup;
+// Step 2: Count role assignments per subscription from authorizationresources
+let roleAssignments = authorizationresources
+    | where type =~ 'microsoft.authorization/roleassignments'
+    | summarize roleAssignmentCount = count() by subscriptionId = tostring(tolower(properties.scope));
+// Step 3: Combine subscriptions, AKS clusters, and role assignment counts
+subscriptions
+| join kind=leftouter aksClusters on subscriptionId
+| join kind=leftouter roleAssignments on subscriptionId
+| project 
+    subscriptionName,
+    subscriptionId,
+    aksClusterName,
+    location,
+    resourceGroup,
+    roleAssignmentCount = coalesce(roleAssignmentCount, 0)
+| order by subscriptionName, aksClusterName
