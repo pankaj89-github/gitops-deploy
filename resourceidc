@@ -1,0 +1,44 @@
+Resources
+| where type == "microsoft.containerservice/managedclusters"
+| extend aksName = name, resourceGroup = resourceGroup, location = location, subscriptionId = subscriptionId
+| extend oidcIssuerUrl = tostring(properties.oidcIssuerProfile.issuerUrl)
+| where isnotempty(oidcIssuerUrl)  // Filter to OIDC-enabled clusters only
+| project clusterId = id, aksName, resourceGroup, location, subscriptionId, oidcIssuerUrl
+| join kind=leftouter (
+    Resources
+    | where type =~ "microsoft.managedidentity/userassignedidentities"
+    | extend identityName = name, identityResourceGroup = resourceGroup, identitySubscriptionId = subscriptionId
+    | project identityId = id, identityName, identityResourceGroup, identitySubscriptionId
+    | join kind=inner (
+        Resources
+        | where type =~ "microsoft.managedidentity/userassignedidentities/federatedidentitycredentials"
+        | extend fedCredName = name
+        | extend fedIssuer = tostring(properties.issuer)
+        | extend fedSubject = tostring(properties.subject)
+        | extend fedAudience = tostring(join(",", properties.audiences))
+        | project fedId = id, fedCredName, fedIssuer, fedSubject, fedAudience, identityId = split(id, '/federatedidentitycredentials')[0]
+    ) on identityId
+    | where isnotempty(fedIssuer)  // Only identities with federated creds
+    | project identityId, identityName, identityResourceGroup, identitySubscriptionId, fedCredName, fedIssuer, fedSubject, fedAudience
+) on $left.subscriptionId == $right.identitySubscriptionId  // Join on subscriptionId for cross-RG
+| extend FederatedCredStatus = case(
+    isnotempty(fedIssuer) and fedIssuer == oidcIssuerUrl, "Included",
+    isnotempty(fedIssuer) and fedIssuer != oidcIssuerUrl, "Not Included",
+    "null"
+)  // New column: Included if fedIssuer matches oidcIssuerUrl, Not Included if mismatched, null if no creds
+| project 
+    clusterId,
+    aksName,
+    resourceGroup,
+    location,
+    subscriptionId,
+    oidcIssuerUrl,
+    identityName,
+    identityResourceGroup,
+    fedCredName,
+    fedIssuer,
+    fedSubject,
+    fedAudience,
+    FederatedCredStatus
+| order by subscriptionId asc, resourceGroup asc, aksName asc, FederatedCredStatus asc
+| limit 100  // Remove for production
