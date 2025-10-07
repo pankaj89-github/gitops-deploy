@@ -1,0 +1,51 @@
+Resources
+| where type == "microsoft.containerservice/managedclusters"
+| extend 
+    AKSName = name,
+    SubscriptionName = subscriptionId,  // Optionally join with subscriptions for friendly name
+    ResourceGroup = resourceGroup,
+    NetworkPlugin = properties.networkProfile.networkPlugin,
+    PodCidr = properties.networkProfile.podCidr,
+    ServiceCidr = properties.networkProfile.serviceCidr,
+    NodePools = properties.agentPoolProfiles
+| extend 
+    // Handle empty or non-empty node pools
+    NodePoolCount = array_length(NodePools),
+    TotalNodes = iff(NodePoolCount > 0, 
+                     sumif(todynamic(NodePools).count, NodePools, todynamic(NodePools).enableAutoScaling == false) + 
+                     sumif(todynamic(NodePools).nodeCount, NodePools, todynamic(NodePools).enableAutoScaling == true), 
+                     0),  // Default to 0 if empty
+    MaxPodsPerNode = iff(NodePoolCount > 0, 
+                         maxof(todynamic(NodePools).maxPods), 
+                         30),  // Default to 30 if empty
+    NodePoolNames = iff(NodePoolCount > 0, 
+                        make_list(todynamic(NodePools).name), 
+                        make_list("N/A"))  // List node pool names or "N/A" if empty
+| extend 
+    PodCidrPrefix = toint(split(PodCidr, '/')[1]),
+    TotalPodIps = iff(isnotempty(PodCidr), pow(2, 32 - PodCidrPrefix) - 2, 0),  // Usable IPs (minus network/broadcast)
+    AllocatedPodIps = TotalNodes * (pow(2, 24 - 8) - 2),  // 254 IPs per node (/24)
+    AvailablePodIps = max_of(TotalPodIps - AllocatedPodIps, 0),
+    MaxPodsTotal = TotalNodes * MaxPodsPerNode,
+    ServiceCidrPrefix = toint(split(ServiceCidr, '/')[1]),
+    TotalServiceIps = iff(isnotempty(ServiceCidr), pow(2, 32 - ServiceCidrPrefix) - 2, 0),
+    AvailableServiceIps = max_of(TotalServiceIps - 1, 0),  // Minus 1 for API server
+    MaxNodesFromPodCidr = floor(TotalPodIps / 254),  // Approx. nodes supported
+    AvailableNodes = max_of(MaxNodesFromPodCidr - TotalNodes, 0)
+| project 
+    AKSName, 
+    SubscriptionName, 
+    ResourceGroup,
+    NetworkPlugin,
+    PodCidr,
+    TotalPodIps,
+    AvailablePodIps,
+    MaxPodsTotal,
+    ServiceCidr,
+    TotalServiceIps,
+    AvailableServiceIps,
+    TotalNodes,
+    AvailableNodes,
+    NodePoolCount,
+    NodePoolNames
+| order by AKSName asc
