@@ -1,0 +1,26 @@
+Resources
+| where type == "microsoft.containerservice/managedclusters"
+| extend 
+    AKSName = name,
+    NodePools = properties.agentPoolProfiles,
+    NodePoolCount = array_length(NodePools)
+| mv-expand NodePools = properties.agentPoolProfiles
+| extend 
+    NodeCount = iff(isnotnull(NodePools), 
+                    iff(todynamic(NodePools).enableAutoScaling == true, 
+                        tolong(todynamic(NodePools).nodeCount), 
+                        tolong(todynamic(NodePools).count)), 
+                    0),
+    MaxPodsPerNode = tolong(todynamic(NodePools).maxPods),
+    NodePoolName = iff(isnotnull(NodePools), tostring(todynamic(NodePools).name), "N/A")
+| summarize 
+    TotalNodes = sum(NodeCount),
+    MaxPodsPerNode = max(MaxPodsPerNode, 30),
+    NodePoolCount = max(NodePoolCount),
+    NodePoolNames = make_set(NodePoolName) // Use make_set instead of make_list
+by AKSName
+| extend 
+    NodePoolNames = iff(NodePoolCount == 0, dynamic(["N/A"]), NodePoolNames) // Handle empty node pools
+| project 
+    AKSName, NodePoolCount, TotalNodes, MaxPodsPerNode, NodePoolNames
+| order by AKSName asc
