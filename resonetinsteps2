@@ -1,0 +1,107 @@
+Resources
+| where type == "microsoft.containerservice/managedclusters"
+| extend 
+    AKSName = name,
+    NodePools = properties.agentPoolProfiles,
+    NodePoolCount = array_length(NodePools),
+    NodePoolNames = iff(array_length(NodePools) > 0, 
+                        make_list(todynamic(NodePools).name), 
+                        make_list("N/A"))
+| mv-expand NodePools = properties.agentPoolProfiles
+| extend 
+    NodeCount = iff(isnotnull(NodePools), 
+                    iff(todynamic(NodePools).enableAutoScaling == true, 
+                        tolong(todynamic(NodePools).nodeCount), 
+                        tolong(todynamic(NodePools).count)), 
+                    0),
+    MaxPodsPerNode = tolong(todynamic(NodePools).maxPods)
+| summarize 
+    TotalNodes = sum(NodeCount),
+    MaxPodsPerNode = max(MaxPodsPerNode, 30), // Default to 30 if null
+    NodePoolCount = max(NodePoolCount),
+    NodePoolNames = make_set(NodePoolNames, 1) // Use make_set to handle single list
+by AKSName
+| project 
+    AKSName, NodePoolCount, TotalNodes, MaxPodsPerNode, NodePoolNames
+| order by AKSName asc
+
+
+Resources
+| where type == "microsoft.containerservice/managedclusters"
+| extend 
+    AKSName = name,
+    PodCidr = tostring(properties.networkProfile.podCidr),
+    ServiceCidr = tostring(properties.networkProfile.serviceCidr),
+    NodePools = properties.agentPoolProfiles
+| mv-expand NodePools = properties.agentPoolProfiles
+| extend 
+    NodeCount = iff(isnotnull(NodePools), 
+                    iff(todynamic(NodePools).enableAutoScaling == true, 
+                        tolong(todynamic(NodePools).nodeCount), 
+                        tolong(todynamic(NodePools).count)), 
+                    0),
+    MaxPodsPerNode = tolong(todynamic(NodePools).maxPods)
+| summarize 
+    TotalNodes = sum(NodeCount),
+    MaxPodsPerNode = max(MaxPodsPerNode, 30)
+by AKSName, PodCidr, ServiceCidr
+| extend 
+    PodCidrPrefix = iff(isnotempty(PodCidr) and array_length(split(PodCidr, '/')) > 1, toint(split(PodCidr, '/')[1]), 0),
+    TotalPodIps = iff(PodCidrPrefix > 0, pow(2, 32 - PodCidrPrefix) - 2, 0),
+    AllocatedPodIps = TotalNodes * (pow(2, 24 - 8) - 2),  // 254 IPs per node
+    AvailablePodIps = max_of(TotalPodIps - AllocatedPodIps, 0),
+    MaxPodsTotal = TotalNodes * MaxPodsPerNode,
+    ServiceCidrPrefix = iff(isnotempty(ServiceCidr) and array_length(split(ServiceCidr, '/')) > 1, toint(split(ServiceCidr, '/')[1]), 0),
+    TotalServiceIps = iff(ServiceCidrPrefix > 0, pow(2, 32 - ServiceCidrPrefix) - 2, 0),
+    AvailableServiceIps = max_of(TotalServiceIps - 1, 0),
+    MaxNodesFromPodCidr = floor(TotalPodIps / 254),
+    AvailableNodes = max_of(MaxNodesFromPodCidr - TotalNodes, 0)
+| project 
+    AKSName, PodCidr, TotalPodIps, AvailablePodIps, MaxPodsTotal, ServiceCidr, TotalServiceIps, AvailableServiceIps, TotalNodes, AvailableNodes
+| order by AKSName asc
+
+
+
+Resources
+| where type == "microsoft.containerservice/managedclusters"
+| extend 
+    AKSName = name,
+    SubscriptionName = subscriptionId,
+    ResourceGroup = resourceGroup,
+    NetworkPlugin = tostring(properties.networkProfile.networkPlugin),
+    PodCidr = tostring(properties.networkProfile.podCidr),
+    ServiceCidr = tostring(properties.networkProfile.serviceCidr),
+    NodePools = properties.agentPoolProfiles,
+    NodePoolCount = array_length(NodePools),
+    NodePoolNames = iff(array_length(NodePools) > 0, 
+                        make_list(todynamic(NodePools).name), 
+                        make_list("N/A"))
+| mv-expand NodePools = properties.agentPoolProfiles
+| extend 
+    NodeCount = iff(isnotnull(NodePools), 
+                    iff(todynamic(NodePools).enableAutoScaling == true, 
+                        tolong(todynamic(NodePools).nodeCount), 
+                        tolong(todynamic(NodePools).count)), 
+                    0),
+    MaxPodsPerNode = tolong(todynamic(NodePools).maxPods)
+| summarize 
+    TotalNodes = sum(NodeCount),
+    MaxPodsPerNode = max(MaxPodsPerNode, 30),
+    NodePoolCount = max(NodePoolCount),
+    NodePoolNames = make_set(NodePoolNames, 1)
+by AKSName, SubscriptionName, ResourceGroup, NetworkPlugin, PodCidr, ServiceCidr
+| extend 
+    PodCidrPrefix = iff(isnotempty(PodCidr) and array_length(split(PodCidr, '/')) > 1, toint(split(PodCidr, '/')[1]), 0),
+    TotalPodIps = iff(PodCidrPrefix > 0, pow(2, 32 - PodCidrPrefix) - 2, 0),
+    AllocatedPodIps = TotalNodes * (pow(2, 24 - 8) - 2),
+    AvailablePodIps = max_of(TotalPodIps - AllocatedPodIps, 0),
+    MaxPodsTotal = TotalNodes * MaxPodsPerNode,
+    ServiceCidrPrefix = iff(isnotempty(ServiceCidr) and array_length(split(ServiceCidr, '/')) > 1, toint(split(ServiceCidr, '/')[1]), 0),
+    TotalServiceIps = iff(ServiceCidrPrefix > 0, pow(2, 32 - ServiceCidrPrefix) - 2, 0),
+    AvailableServiceIps = max_of(TotalServiceIps - 1, 0),
+    MaxNodesFromPodCidr = floor(TotalPodIps / 254),
+    AvailableNodes = max_of(MaxNodesFromPodCidr - TotalNodes, 0)
+| project 
+    AKSName, SubscriptionName, ResourceGroup, NetworkPlugin, PodCidr, TotalPodIps, AvailablePodIps, MaxPodsTotal, 
+    ServiceCidr, TotalServiceIps, AvailableServiceIps, TotalNodes, AvailableNodes, NodePoolCount, NodePoolNames
+| order by AKSName asc
