@@ -1,0 +1,26 @@
+Resources
+| where type == 'microsoft.containerservice/managedclusters'
+| extend aksClusterName = name, location = location
+| join kind=leftouter (
+    Resources
+    | where type == 'microsoft.containerservice/managedclusters/agentpools'
+    | extend 
+        nodePoolName = name,
+        provisioningState = properties.provisioningState,
+        currentNodeCount = toint(properties.count),
+        maxNodeCount = toint(properties.maxCount),
+        enableAutoScaling = properties.enableAutoScaling
+    | project id, nodePoolName, provisioningState, currentNodeCount, maxNodeCount, enableAutoScaling
+) on $left.id == $right.id
+| extend 
+    maxNodeCount = iif(isnull(maxNodeCount) or enableAutoScaling == false, currentNodeCount, maxNodeCount),
+    usagePercent = round((currentNodeCount * 100.0) / nullif(maxNodeCount, 0), 2)
+| project 
+    aksClusterName,
+    location,
+    nodePoolName,
+    provisioningState,
+    currentNodeCount,
+    maxNodeCount,
+    usagePercent
+| order by aksClusterName, nodePoolName
