@@ -1,0 +1,24 @@
+# ────────────────────────────────
+# Final query – copy-paste this ONE query into a Table panel
+# ────────────────────────────────
+group by (nodepool, instance_type) (
+  # Part 1: current real node count per NodePool + per SKU
+  sum by (node, label_karpenter_sh_nodepool, label_beta_kubernetes_io_instance_type) (
+    kube_node_info{cluster="$cluster"}
+  )
+  * on(node) group_left(label_karpenter_sh_nodepool, label_beta_kubernetes_io_instance_type)
+  kube_node_labels{cluster="$cluster", label_karpenter_sh_nodepool=~".+"}
+  
+  or
+  
+  # Part 2: force 0 rows for every NodePool+SKU combination that ever existed
+  #         (so scaled-to-zero NodePools and old SKUs still appear with 0)
+  label_replace(
+    label_replace(
+      kube_node_labels{cluster="$cluster", label_karpenter_sh_nodepool=~".+"}
+      * 0,
+      "nodepool", "$1", "label_karpenter_sh_nodepool", "(.*)"
+    ),
+    "instance_type", "$1", "label_beta_kubernetes_io_instance_type", "(.*)"
+  )
+)
