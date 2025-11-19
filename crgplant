@@ -1,0 +1,84 @@
+@startuml
+' AKS Multi-Region Disaster + Capacity Crunch
+' Single box for GSLB + Azure Front Door + Traffic Manager
+
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam nodesep 70
+skinparam ranksep 90
+skinparam defaultFontSize 12
+skinparam rectangle {
+  BorderRoundCorner 15
+}
+
+title AKS NAP – Primary Region Dies → Secondary Region in Crunch\nNo CRG = No Guarantee │ With CRG = Application Survives
+
+actor "Users / Traffic" as users #white
+
+' ONE SINGLE BOX for all global routing options
+rectangle "Global Traffic Routing\n(GSLB or Azure solutions)\n\n• GSLB (F5, Citrix, Cloudflare, AWS R53, NS1…)\n• Azure Front Door\n• Azure Traffic Manager" as router #66ccff {
+  note bottom
+    Health-check based failover
+    Primary → Secondary region
+  end note
+}
+
+package "East US – Primary Region" as primary {
+  [AKS Nodes] as nodes1 #ff6666
+  [Karpenter / NAP] as nap1
+  node "CRG\n(not used)" as crg1 #dddddd
+}
+
+package "East US 2 – Secondary Region" as secondary {
+  [AKS Nodes] as nodes2 #ffcc88
+  [Karpenter / NAP] as nap2
+  node "CRG\n(optional)" as crg2
+}
+
+node "CRG = PRE-RESERVED\n50 × Standard_D8s_v5\nzones 1-3" as crg_ok #88ff88
+
+' Normal operation
+users --> router : 100% traffic
+router --> primary : normal
+nodes1 --> nap1 : healthy
+nap1 --> crg1 : no reservation
+
+note right of primary #ffaaaa
+  T+0: Primary region outage
+end note
+
+router --> secondary : FAILOVER → traffic spike!
+
+note right of secondary #ffdd99
+  T+30min: Secondary region
+  hits capacity crunch
+end note
+
+' WITHOUT CRG
+nap2 --> crg2 : no reservation
+nap2 -down-> secondary : try 50 nodes → AllocationFailed
+note right of nap2 #ff6666
+  WITHOUT CRG
+  → Pods Pending for hours
+  → Application DOWN
+  → Same result with GSLB or Azure routing
+end note
+
+' WITH CRG
+nap2 --> crg_ok : exact SKU+zone match
+crg_ok -down-> nodes2 : nodes up in <2 min
+note right of crg_ok #aaffaa
+  WITH CRG → survives the crunch
+  • 99.99% SLA
+  • Application stays UP
+  • Works regardless of routing method
+end note
+
+legend bottom
+  |= Colour      |= Meaning                          |
+  |<#ff6666>    | Total failure – no guarantee     |
+  |<#aaffaa>    | Survives thanks to CRG           |
+  |<#ffaaaa>    | Region outage                    |
+  |<#ffdd99>    | Capacity crunch                  |
+  |<#66ccff>    | Global routing (any solution)    |
+end legend
