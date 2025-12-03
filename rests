@@ -1,0 +1,17 @@
+authorizationresources
+| where type == "microsoft.authorization/roleassignments"
+| where id contains "/managedclusters/" and id contains "/namespaces/"
+| extend Parts = split(tolower(id), "/")
+| extend ClusterIndex = array_index_of(Parts, "managedclusters")
+| extend NamespaceIndex = ClusterIndex + 2                     // namespace is exactly 2 positions after "managedclusters"
+| extend Namespace = Parts[NamespaceIndex]
+| extend ClusterName = Parts[ClusterIndex + 1]
+| project 
+    Namespace,
+    ClusterName,
+    ResourceGroup = resourceGroup,
+    SubscriptionId = subscriptionId,
+    RoleDefinitionId = tostring(properties.roleDefinitionId),
+    PrincipalId = tostring(properties.principalId),
+    FullId = id
+| order by ClusterName, Namespace
