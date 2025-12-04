@@ -1,0 +1,6 @@
+Future Outlook: When the Hybrid Approach Will No Longer Be Required
+Once native NAP+CRG support lands (ETA CY26 per the GitHub issue and AKS roadmap), auto-provisioned pools will directly integrate with CRGs. This means:
+NAP (via Karpenter) will automatically detect and prioritize reserved capacity without manual SKU constraints.
+No need for hybrid manual/auto setups—full automation for guaranteed compute across all pools.
+Based on current official docs (e.g., NAP overview at https://learn.microsoft.com/en-us/azure/aks/node-auto-provisioning), this will simplify provisioning while maintaining features like dynamic SKU optimization and zonal HA.
+We'll monitor Azure updates for the exact rollout (likely Q1-Q2 2026) and reassess then.
