@@ -1,0 +1,12 @@
+Hi team,Quick summary on using Azure Capacity Reservation Groups (CRGs) with AKS when Node Auto-Provisioning (NAP) is enabled:What does NOT work today
+Auto-provisioned node pools created by NAP cannot consume Capacity Reservation Groups.
+There is no native integration yet – NAP will not automatically select or prioritize reserved capacity.
+Official open issue with confirmed ETA in CY26: https://github.com/Azure/AKS/issues/5397
+What DOES work today (fully supported and guaranteed)
+Manual node pools in a NAP-enabled cluster can be directly attached to a Capacity Reservation Group using the standard --crg-id parameter (or via Portal/ARM).
+This gives 100% guaranteed compute capacity for critical/steady-state workloads, exactly as documented in the official Microsoft guidance:
+https://learn.microsoft.com/en-us/azure/aks/use-capacity-reservation-groups
+Recommended pattern today
+Use NAP for burst / best-effort workloads (constrain SKUs via NodePool CRD to match your reserved sizes if desired).
+Run production/critical workloads on one or more manual node pools that are explicitly tied to your CRG for true capacity guarantees.
+Once the feature lands in 2026, NAP will natively support CRGs and this hybrid approach will no longer be required.Let me know if you need help sizing the CRG or creating the manual node pool.Thanks,
