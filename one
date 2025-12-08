@@ -1,0 +1,115 @@
+AKS Capacity Reservation Groups (CRG) – Financial Services Scenarios
+Executive One-Pager
+December 2025
+Business Problem in Financial Services
+Financial workloads (e.g., trading platforms, risk modeling, payment processing) demand instant, uninterrupted compute for compliance (e.g., PCI-DSS, SOX) and zero-tolerance SLAs. Azure capacity crunches—driven by surging AI/ML demand and supply-chain delays—can delay VM/AKS node provisioning by 15–90+ minutes, risking multimillion-dollar losses during peaks like market opens or quarter-ends. Official Azure Capacity Crunch Incidents:
+2025 East US Shortfall (July): Multi-AZ VMSS issues for D/E-series SKUs; customers urged to migrate to AZ1/3 or East US 2. Microsoft Learn: Logical Zone Mapping
+Ongoing 2025 Constraints: High demand blocks GPU/VM allocations in regions like North Central US; quota delays for ML endpoints. Q&A: Capacity Issues
+Historical (2020–2024): COVID-era surges caused repeated allocation failures; Microsoft prioritized enterprises but new/pending users hit barriers. Azure Blog: Service Continuity
+Troubleshooting Guide: AllocationFailed errors due to "unprecedented demand"; retry in alternate zones or use CRGs. Microsoft Learn: VM Allocation Failures
+CRGs mitigate this by locking 100% guaranteed capacity for AKS manual node pools, ensuring no failures.
+Short Summary of CRG
+A Capacity Reservation Group (CRG) is an Azure resource that pre-reserves dedicated compute capacity (specific VM sizes and zones) for exclusive use by your VMs or AKS node pools. It guarantees 100% availability during high-demand periods, preventing allocation failures. Create via CLI/Portal/API within a group; attach to new manual AKS node pools using --crg-id. Ideal for finance's predictable peaks; billed hourly at pay-as-you-go rates (even unused), eligible for RI discounts.
+Financial-Only Scenarios: 100% Guaranteed Compute with CRGs
+CRGs shine in finance for predictable, high-stakes scaling. Target D/E/FX-series VMs for analytics/risk workloads. Combine with Reserved Instances for 72%+ savings.
+
+
+
+Short Summary of CRGA Capacity Reservation Group (CRG) is an Azure resource that pre-reserves dedicated compute capacity (specific VM sizes and zones) for exclusive use by your VMs or AKS node pools. It guarantees 100% availability during high-demand periods, preventing allocation failures. Create via CLI/Portal/API within a group; attach to new manual AKS node pools using --crg-id. Ideal for finance's predictable peaks; billed hourly at pay-as-you-go rates (even unused), eligible for RI discounts.Financial-Only Scenarios: 100% Guaranteed Compute with CRGsCRGs shine in finance for predictable, high
+
+Financial-Only Scenarios: 100% Guaranteed Compute with CRGs
+CRGs shine in finance for predictable, high-stakes scaling. Target D/E/FX-series VMs for analytics/risk workloads. Combine with Reserved Instances for 72%+ savings.
+#
+Scenario
+Why CRG Delivers 100% Guarantee
+Impact if No CRG (Real Crunch Risk)
+Setup Notes
+1
+End-of-Quarter Financial Closing
+Reserves 200+ E-series nodes for batch ETL/risk calcs; scales in <10 min without quota waits.
+2025 US Central delays blocked ML jobs, delaying reports by hours. Q&A: VM Failures
+Zonal CRG in East US; manual AKS pool + per-pool autoscaler.
+2
+Real-Time Trading Platforms
+Locks FX-series for low-latency order execution; instant failover during volatility spikes.
+East US 2025 crunch hit trading VMs, causing 15-min outages. Network World: East US Shortfall
+HA across zones; taints for trading pods only.
+3
+Payment Gateways & Core Banking
+Ensures D-series for transaction processing; zero downtime for 24/7 ops.
+2020–2024 surges caused pinned cluster failures in banking VMs. Cloud Services Allocation
+Multi-region CRGs for DR; PCI-compliant labeling.
+CRG vs. Reserved Instances (RI) – Quick Comparison
+CRGs focus on availability guarantees, while RIs emphasize cost discounts. Use them together for optimal results in financial workloads.
+Feature
+Capacity Reservation Group (CRG)
+Reserved Instances (RI)
+Primary Focus
+100% capacity guarantee (no allocation failures)
+Up to 72% billing discount on committed usage
+Availability Protection
+Yes—locks capacity; fails creation if unavailable
+No—prioritized access only, no hard guarantee
+Cost Savings
+None inherent (pay-as-you-go rates apply)
+Deep discounts (1/3-year terms)
+Commitment
+Flexible—no term; create/delete anytime
+Fixed 1-year or 3-year commitment
+Billing
+Hourly for reserved capacity (even if unused)
+Discount applied only to running resources
+Finance Use Case
+Trading platforms needing instant failover
+Steady-state risk modeling for long-term savings
+Best Combo
+CRG + RI = Guarantee + Discount (e.g., 72% off reserved capacity)
+N/A
+
+
+Cost of CRGs
+CRGs are billed hourly at the same rate as the underlying VM size (pay-as-you-go pricing), whether the reserved capacity is used or unused—e.g., reserving 10 Standard_D2s_v3 VMs charges as if 10 VMs are running, even idle. No upfront commitment required, but you pay for the full reserved amount continuously. Discounts from Reserved Instances or Savings Plans apply automatically to both used and unused portions, potentially zeroing out costs for covered capacity.  
+
+
+Bottom Line for Finance Execs
+CRGs provide contractual 100% allocation reliability today—essential for zero-downtime trading and compliance in crunch-prone regions. Pair with RIs for up to 72% savings; deploy via manual AKS pools now, and simplify with native NAP integration in 2026 to future-proof your financial workloads.
+
+@startuml
+!theme plain
+title AKS + CRG: Financial Workloads (Dec 2025)
+
+package "Azure Subscription (East US)" {
+  [Capacity Reservation Group\n(CRG)\nE/FX-series Reserved\n(for Finance SKUs)] as CRG
+
+  package "AKS Cluster\n(NAP Enabled)" {
+    node "Manual Node Pool\n(--crg-id)\nTrading/Risk Workloads" as ManualPool {
+      rectangle "Pod\n(Order Execution,\nFraud ML)" as FinancePods
+    }
+    node "Auto-provisioned Pools\n(NAP)\nDev/Test Bursts" as NAPPools {
+      rectangle "Pod\n(Reporting Sims)" as TestPods
+    }
+  }
+}
+
+CRG --> ManualPool : 100% Guaranteed\nNo Crunch Failures
+ManualPool -down-> FinancePods : <10 min Scale
+NAPPools -down-> TestPods : Best-Effort
+
+note right of ManualPool
+  For Q-End Closing,\nTrading Peaks
+  CLI/ARM Only
+  +72% RI Savings
+end note
+
+note right of NAPPools
+  No CRG Until 2026
+  (GitHub #5397)
+end note
+
+note bottom
+  Mitigates 2025 East US Crunch
+end note
+
+@enduml
+
+
