@@ -1,0 +1,5 @@
+Subject: Recommendation: Let's Explore Multi-Instance GPUs (MIG) to Optimize Our AI CostsDear [Product Owner's Name],Multi-Instance GPU (MIG) is NVIDIA technology that partitions a single high-end GPU into multiple isolated "slices," allowing several AI jobs to run safely and independently on one card—unlike traditional sharing, which can cause interference.I suggest we start evaluating MIG for our Azure Kubernetes (AKS) AI clusters. Here's the business case:• Big cost savings – MIG lets us run 2–7 times more AI jobs on the same GPUs, cutting our monthly cloud spend significantly (NVIDIA reports up to maximum utilization in multi-tenant setups).
+• More reliable service – It prevents one heavy job from slowing down others, helping us meet customer latency promises.
+• Better use of resources – Many shared GPUs today sit at only 15-30% usage; MIG pushes this much higher (often near 100% in real workloads), so we need fewer machines overall.
+• Future-proof flexibility – Easily support multiple customer models or teams on the same hardware with strong separation.This is a low-risk first step we can test quickly. I'd love to discuss a small proof-of-concept.
+
